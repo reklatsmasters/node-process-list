@@ -1,0 +1,42 @@
+{
+  "name": "tasklist",
+  "version": "0.1.0",
+  "description": "Cross-platform method to receive the list of the launched processes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "node-gyp rebuild",
+    "start": "node ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/reklatsmasters/node-tasklist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/reklatsmasters/node-tasklist/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "/blob/master/LICENSE-MIT"
+    }
+  ],
+  "engines": {
+    "node": ">= 0.8.0"
+  },
+  "keywords": [
+    "tasklist",
+    "process",
+    "list",
+    "task",
+    "running"
+  ],
+  "author": {
+    "name": "Дмитрий Цветцих",
+    "email": "me@reklatsmasters.com"
+  },
+  "gypfile": true,
+  "devDependencies": {
+    "node-gyp": "^1.0.1"
+  }
+}
