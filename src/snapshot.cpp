@@ -44,8 +44,23 @@ Handle<Value> snapshot(const Arguments& args) {
 			);
 
 			hash->Set(
+			          String::New("ppid"),
+			          Number::New( snap.at(i)->parentPid() )
+			);
+
+			hash->Set(
 			          String::New("path"),
 			          String::New( snap.at(i)->path().c_str() )
+			);
+
+			hash->Set(
+			          String::New("threads"),
+			          Number::New( snap.at(i)->threads() )
+			);
+
+			hash->Set(
+			          String::New("owner"),
+			          String::New( snap.at(i)->owner().c_str() )
 			);
 
 			tasks->Set(i, hash);

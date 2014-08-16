@@ -137,11 +137,11 @@ public:
 		return m_cmdline;
 	}
 
-	inline std::string ovner() const {
-		return m_ovner;
+	inline std::string owner() const override {
+		return m_owner;
 	}
 
-	inline uint32_t threads() const {
+	inline uint32_t threads() const override {
 		return m_threads;
 	}
 
@@ -163,7 +163,7 @@ private:
 	int32_t		m_priority;	// priority level
 
 	size_t		m_size;		// size of file, in bytes
-	std::string	m_ovner;
+	std::string	m_owner;
 
 
 	void readCmdline() {
@@ -298,7 +298,7 @@ private:
 		struct passwd* userData = getpwuid( sstat.st_uid );
 
 		if (userData) {
-			m_ovner = std::string(userData->pw_name);
+			m_owner = std::string(userData->pw_name);
 		}
 	}
 

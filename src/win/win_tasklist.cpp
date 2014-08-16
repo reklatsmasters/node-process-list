@@ -10,6 +10,8 @@
 
 #include "tasklist.h"
 
+#define MAX_NAME 256
+
 // std way to convert wstring to string
 std::string ws2s(const std::wstring& wstr) {
     typedef std::codecvt_utf8<wchar_t> convert_typeX;
@@ -51,6 +53,89 @@ public:
 		return ws2s (name);
 	}
 
+	// owner of the process
+	std::string owner () const {
+		HANDLE hToken = nullptr;
+		TOKEN_USER *pUserInfo = nullptr;
+		DWORD pTokenSize = 0;
+		SID_NAME_USE SidType;
+
+		WCHAR *pUserName = new WCHAR[MAX_NAME];
+		DWORD pUserSize = MAX_NAME;
+
+		WCHAR *pDomainName = new WCHAR[MAX_NAME];
+		DWORD pDomainSize = MAX_NAME;
+
+		//open the processes token
+		if (!OpenProcessToken (hProcess, TOKEN_QUERY, &hToken)) {
+			delete[] pUserName;
+			delete[] pDomainName;
+
+			return std::string ();
+		}
+
+		// get the buffer size of the token
+		if (!GetTokenInformation (hToken, TokenUser, NULL, pTokenSize, &pTokenSize)) {
+			DWORD dwResult = GetLastError ();
+
+			if (dwResult != ERROR_INSUFFICIENT_BUFFER) {
+				delete[] pUserName;
+				delete[] pDomainName;
+				CloseHandle (hToken);
+
+				return std::string ();
+			}
+		}
+
+		if (!pTokenSize) {
+			delete[] pUserName;
+			delete[] pDomainName;
+			CloseHandle (hToken);
+
+			return std::string ();
+		}
+
+		// Allocate the buffer of the token
+		pUserInfo = (TOKEN_USER*) HeapAlloc (GetProcessHeap (), HEAP_ZERO_MEMORY, pTokenSize);
+
+		if (!pUserInfo) {
+			delete[] pUserName;
+			delete[] pDomainName;
+			CloseHandle (hToken);
+
+			return std::string ();
+		}
+
+		// Call GetTokenInformation again to get the SID of the token
+		if (!GetTokenInformation (hToken, TokenUser, pUserInfo, pTokenSize, &pTokenSize)) {
+			HeapFree (GetProcessHeap (), 0, pUserInfo);
+			delete[] pUserName;
+			delete[] pDomainName;
+			CloseHandle (hToken);
+
+			return std::string ();
+		}
+
+		//get the account/domain name of the SID
+		if (!LookupAccountSid (NULL, pUserInfo->User.Sid, pUserName, &pUserSize, pDomainName, &pDomainSize, &SidType)) {
+			HeapFree (GetProcessHeap (), 0, pUserInfo);
+			delete[] pUserName;
+			delete[] pDomainName;
+			CloseHandle (hToken);
+
+			return std::string ();
+		}
+
+		std::wstring username (pUserName, pUserSize);
+
+		HeapFree (GetProcessHeap (), 0, pUserInfo);
+		delete[] pUserName;
+		delete[] pDomainName;
+		CloseHandle (hToken);
+
+		return ws2s (username);
+	}
+
 private:
 	HANDLE hProcess;
 
@@ -62,11 +147,24 @@ class Entry : public Process {
 public:
 	Entry (std::shared_ptr<PROCESSENTRY32> entry)
 		: pEntry (std::move (entry)) 
-	{ }
+	{
+		pProcess = nullptr;
+
+		try {
+			pProcess = new HandleProcess ( pid() );
+		} catch (const std::bad_alloc &) {
+		}
+	}
 
 	Entry (Entry&& v)
 		: pEntry(std::move(v.pEntry)) 
 	{ }
+
+	~Entry () {
+		if (pProcess) {
+			delete pProcess;
+		}
+	}
 
 	static std::shared_ptr<PROCESSENTRY32> Factory () {
 		std::shared_ptr<PROCESSENTRY32> entry = std::make_shared<PROCESSENTRY32> ();
@@ -79,31 +177,45 @@ public:
 		return std::make_shared<Entry> (std::move (bEntry));
 	}
 
-	uint32_t pid () const {
+	inline uint32_t pid () const override {
 		return pEntry->th32ProcessID;
 	}
 
-	uint32_t parentPid () const {
+	inline uint32_t parentPid () const {
 		return pEntry->th32ParentProcessID;
 	}
 
-	std::string name () const {
+	std::string name () const override {
 		return  ws2s (pEntry->szExeFile);
 	}
 
-	std::string path () const {
-		std::string fullname = std::string ();
+	std::string path () const override {
+		std::string fullname;
 
-		try {
-			auto process = std::make_shared<HandleProcess> (this->pid ());
-			fullname = process->path ();
-		} catch (const std::bad_alloc &) {}
+		if (pProcess) {
+			fullname = pProcess->path ();
+		}
 
 		return fullname;
 	}
 
+	std::string owner () const override {
+		std::string username;
+
+		if (pProcess) {
+			username = pProcess->owner();
+		}
+
+		return username;
+	}
+
+	inline uint32_t threads() const override {
+		return pEntry->cntThreads;
+	}
+
 private:
 	std::shared_ptr<PROCESSENTRY32> pEntry;
+	HandleProcess *pProcess;
 
 	Entry () = delete;
 	Entry (const Entry&) = delete;

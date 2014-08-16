@@ -14,6 +14,8 @@ public:
 	virtual uint32_t pid () const = 0;        // process PID
 	virtual uint32_t parentPid () const = 0;  // parent process PID
 	virtual std::string path () const = 0;	  // full path to process image
+	virtual uint32_t threads() const = 0;
+	virtual std::string owner () const = 0;
 };
 
 std::vector< std::shared_ptr<Process> > tasklist ();
