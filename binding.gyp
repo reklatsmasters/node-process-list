@@ -4,7 +4,6 @@
 		"sources": [ 
 			"src/main.cpp"
 			, "src/snapshot.cpp"
-			, "src/tasklist.cpp"
 		],
 		"include_dirs":["src"],
 
@@ -13,6 +12,9 @@
 				"defines": [
 					"UNICODE",
 					"_UNICODE "
+				],
+				"sources": [
+					"src/win/win_tasklist.cpp"
 				],
 				"configurations": {
 					'Release': {
@@ -35,6 +37,20 @@
 					  }
 					}
 				}
+			},{	# OS != win
+				"sources": [
+					"src/unix/tasklist.cpp"
+				],
+				'cflags_cc!': ['-fno-rtti'],
+				'cflags_cc+': ['-frtti'],
+				'cflags_cc!': ['-fno-exceptions'],
+				"cflags_cc+": [
+					"-fexceptions",
+					"-std=c++0x"
+				]
+			}],
+			['OS=="mac"', {
+			    'xcode_settings': { 'GCC_ENABLE_CPP_RTTI': 'YES' }
 			}]
 		]
 	}]

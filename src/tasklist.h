@@ -8,7 +8,7 @@
 
 class Process {
 public:
-	~Process ();
+	~Process () {}
 
 	virtual std::string name () const = 0;	  // short name of process, executable file name
 	virtual uint32_t pid () const = 0;        // process PID
