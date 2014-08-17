@@ -13,12 +13,13 @@
 using namespace v8;
 
 void init(Handle<Object> exports) {
-	exports->Set(String::NewSymbol("snapshot"),
-		FunctionTemplate::New(snapshot)->GetFunction());
+	// sync api
+	exports->Set(String::NewSymbol("snapshotSync"),
+		FunctionTemplate::New(snapshot_sync)->GetFunction());
 
-	// alias
-	exports->Set(String::NewSymbol("list"),
-		FunctionTemplate::New(snapshot)->GetFunction());
+	// async api
+	exports->Set(String::NewSymbol("snapshot"),
+		FunctionTemplate::New(snapshot_async)->GetFunction());
 }
 
 NODE_MODULE(tasklist, init)
