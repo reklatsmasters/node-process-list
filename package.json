@@ -24,6 +24,11 @@
   "engines": {
     "node": ">= 0.8.0"
   },
+  "files": [
+    "index.js",
+    "src",
+    "binding.gyp"
+  ],
   "keywords": [
     "tasklist",
     "process",
