@@ -22,4 +22,4 @@ void init(Handle<Object> exports) {
 		FunctionTemplate::New(snapshot_async)->GetFunction());
 }
 
-NODE_MODULE(tasklist, init)
+NODE_MODULE(process_list, init)

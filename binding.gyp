@@ -1,6 +1,6 @@
 {
 	"targets": [{
-		"target_name": "tasklist",
+		"target_name": "process_list",
 		"sources": [ 
 			"src/main.cpp"
 			, "src/snapshot.cpp"

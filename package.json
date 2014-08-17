@@ -1,5 +1,5 @@
 {
-  "name": "tasklist",
+  "name": "process-list",
   "version": "0.1.0",
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
@@ -10,10 +10,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/reklatsmasters/node-tasklist.git"
+    "url": "git://github.com/reklatsmasters/node-process-list.git"
   },
   "bugs": {
-    "url": "https://github.com/reklatsmasters/node-tasklist/issues"
+    "url": "https://github.com/reklatsmasters/node-process-list/issues"
   },
   "licenses": [
     {
@@ -29,7 +29,8 @@
     "process",
     "list",
     "task",
-    "running"
+    "runned",
+    "launched"
   ],
   "author": {
     "name": "Дмитрий Цветцих",
@@ -37,6 +38,6 @@
   },
   "gypfile": true,
   "devDependencies": {
-    "node-gyp": "^1.0.1"
+    "node-gyp": "^1.0.0"
   }
 }

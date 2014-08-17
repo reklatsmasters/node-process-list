@@ -1,3 +1,1 @@
-var tasks = require('./build/Release/tasklist');
-
-module.exports = tasks;
+module.exports = require('./build/Release/process_list');
