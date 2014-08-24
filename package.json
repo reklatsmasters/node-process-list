@@ -42,7 +42,5 @@
     "email": "me@reklatsmasters.com"
   },
   "gypfile": true,
-  "devDependencies": {
-    "node-gyp": "^1.0.0"
-  }
+  "devDependencies": {}
 }
