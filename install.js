@@ -240,7 +240,7 @@ BinWrapper.prototype._parse = function (obj) {
     return ret;
 };
 
-var BASE_URL = 'https://raw.githubusercontent.com/reklatsmasters/node-process-list/master/dist/';
+var BASE_URL = 'https://raw.githubusercontent.com/reklatsmasters/node-process-list/v' + pkg.version + '/dist/';
 
 var bin = new BinWrapper()
         .src(url.resolve(BASE_URL, "linux/x86/" + pkg.name + ".node"), 'linux')
