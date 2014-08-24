@@ -26,6 +26,7 @@
   },
   "files": [
     "index.js",
+    "install.js",
     "src",
     "binding.gyp"
   ],
@@ -42,5 +43,11 @@
     "email": "me@reklatsmasters.com"
   },
   "gypfile": true,
-  "devDependencies": {}
+  "devDependencies": {},
+  "dependencies": {
+    "download": "^1.0.2",
+    "find-file": "^0.1.4",
+    "log-symbols": "^1.0.0",
+    "string.prototype.endswith": "^0.2.0"
+  }
 }

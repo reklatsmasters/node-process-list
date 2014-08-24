@@ -1,6 +1,6 @@
 {
 	"targets": [{
-		"target_name": "process_list",
+		"target_name": "process-list",
 		"sources": [ 
 			"src/main.cpp"
 			, "src/snapshot.cpp"
@@ -57,9 +57,9 @@
 		{
 			"target_name":"action_after_build",
 			"type": "none",
-			"dependencies": [ "process_list" ],
+			"dependencies": [ "process-list" ],
 			"copies": [{
-				"files": [ "<(PRODUCT_DIR)/process_list.node" ],
+				"files": [ "<(PRODUCT_DIR)/process-list.node" ],
 				"destination": "./lib/"
 			}]
 		}
