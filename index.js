@@ -1,1 +1,1 @@
-module.exports = require('./build/Release/process_list');
+module.exports = require('./lib/process_list');

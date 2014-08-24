@@ -41,17 +41,27 @@
 				"sources": [
 					"src/unix/tasklist.cpp"
 				],
-				'cflags_cc!': ['-fno-rtti'],
-				'cflags_cc+': ['-frtti'],
-				'cflags_cc!': ['-fno-exceptions'],
+				'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],
 				"cflags_cc+": [
 					"-fexceptions",
-					"-std=c++0x"
+					"-std=c++0x",
+					'-frtti'
 				]
 			}],
 			['OS=="mac"', {
 			    'xcode_settings': { 'GCC_ENABLE_CPP_RTTI': 'YES' }
 			}]
 		]
-	}]
+	},
+
+		{
+			"target_name":"action_after_build",
+			"type": "none",
+			"dependencies": [ "process_list" ],
+			"copies": [{
+				"files": [ "<(PRODUCT_DIR)/process_list.node" ],
+				"destination": "./lib/"
+			}]
+		}
+	]
 }
