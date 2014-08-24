@@ -3,17 +3,24 @@
 > Cross-platform method to receive the list of the launched processes.
 
 ## Install
-* from bonaries
+You do not need a compiler to compile the package. Module is already compiled. Just install.
 
 ```bash
 npm install process-list
 ```
-* from sources
-	1. Install Python 2.7
-    2. For Windows: Install MSVC 2013
-    3. For linux: install / update GCC to 4.8 and later
-    4. ``` npm install -g node-gyp ```
-    5. ``` npm install process-list ```
+Supported OS:
+* Windows 7+ (maybe Vista)
+* Linux (Ubuntu, CentOS and other)
+* MacOS - supported, but **not tested**.
+
+#### install from sources
+If none of the compiled binaries does not fit, you will be asked to compile the package from source.
+
+1. Install Python 2.7
+2. For Windows: Install MSVC 2013
+3. For Unix: install / update GCC to 4.8 and later
+4. ``` npm install -g node-gyp ```
+5. ``` npm install process-list ```
     
 See [node-gyp](https://github.com/TooTallNate/node-gyp) for more info.
 
@@ -40,12 +47,12 @@ tasks.snapshot({verbose:true}, function(err, data){
 
 // output
 // [{
-// 		name: "1.exe", 
-// 		path: "c:\\windows\\1.exe", 
+// 		name: "1.exe",              // process name
+// 		path: "c:\\windows\\1.exe", // full path to process (if available)
 // 		threads: 5, 
-// 		owner:"Ololo",
-// 		pid: 1234,
-// 		ppid: 12
+// 		owner:"root",
+// 		pid: 1234,                  // process pid
+// 		ppid: 12	                // parent ptocess pid
 // }, ... ]
 ```
 
@@ -53,8 +60,6 @@ tasks.snapshot({verbose:true}, function(err, data){
 ```js
 var tasks = require("process-list");
 console.log(tasks.snapshotSync());
-
-
 ```
 
 ## TODO
