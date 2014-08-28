@@ -105,7 +105,7 @@ public:
 		m_threads	= 0;
 		m_state		= 0;
 		m_pgrp		= 0;
-		m_priority	= -1;
+		m_priority	= 0;
 		m_size		= 0;
 
 		readCmdline();
@@ -145,6 +145,10 @@ public:
 		return m_threads;
 	}
 
+	inline int32_t priority () const override {
+		return m_priority;
+	}
+	
 private:
 	std::string m_prefix;	// префикс пути к данным процесса
 

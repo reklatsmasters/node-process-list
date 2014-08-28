@@ -213,6 +213,10 @@ public:
 		return pEntry->cntThreads;
 	}
 
+	inline int32_t priority () const override {
+		return pEntry->pcPriClassBase;
+	}
+
 private:
 	std::shared_ptr<PROCESSENTRY32> pEntry;
 	HandleProcess *pProcess;

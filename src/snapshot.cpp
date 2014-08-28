@@ -63,6 +63,11 @@ Handle<Value> snapshot_sync(const Arguments& args) {
 			          String::New( snap.at(i)->owner().c_str() )
 			);
 
+			hash->Set(
+			          String::New("priority"),
+			          Number::New( snap.at(i)->priority() )
+			);
+
 			tasks->Set(i, hash);
 		} else {
 			tasks->Set(i, String::New( snap.at(i)->name().c_str() ));
@@ -121,6 +126,12 @@ void AsyncAfter(uv_work_t *job) {
 			hash->Set(
 			          String::New("owner"),
 			          String::New( asyncData->tasks.at(i)->owner().c_str() )
+			);
+
+
+			hash->Set(
+			          String::New("priority"),
+			          Number::New( asyncData->tasks.at(i)->priority() )
 			);
 
 			tasks->Set(i, hash);

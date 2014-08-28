@@ -16,6 +16,7 @@ public:
 	virtual std::string path () const = 0;	  // full path to process image
 	virtual uint32_t threads() const = 0;
 	virtual std::string owner () const = 0;
+	virtual int32_t priority () const = 0;
 };
 
 std::vector< std::shared_ptr<Process> > tasklist ();
