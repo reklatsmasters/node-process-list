@@ -20,7 +20,7 @@ If none of the compiled binaries does not fit, you will be asked to compile the 
 2. For Windows: Install MSVC 2013
 3. For Unix: install / update GCC to 4.8 and later
 4. ``` npm install -g node-gyp ```
-5. ``` npm install process-list ```
+5. ``` node-gyp rebuild ```
     
 See [node-gyp](https://github.com/TooTallNate/node-gyp) for more info.
 
@@ -52,7 +52,8 @@ tasks.snapshot({verbose:true}, function(err, data){
 // 		threads: 5, 
 // 		owner:"root",
 // 		pid: 1234,                  // process pid
-// 		ppid: 12	                // parent ptocess pid
+// 		ppid: 12,                   // parent ptocess pid
+//	    priority: 15                // process priority (OS specific value)
 // }, ... ]
 ```
 
@@ -66,6 +67,6 @@ console.log(tasks.snapshotSync());
 * CPU usage per process
 * Memory usage per process
 * Command line (for Windows)
-* Process priority
+* ~~Process priority~~
 * Dependencies of the process
 * Сustomizable information
