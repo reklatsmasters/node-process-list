@@ -1,6 +1,6 @@
 'use strict';
 
-var scope = require('./lib/process-list');
+var scope = require('./lib/processlist');
 
 // sync api
 exports.snapshotSync = function(opts) {

@@ -4,7 +4,7 @@
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node_modules/.bin/mocha -R spec"
   },
   "repository": {
     "type": "git",
@@ -20,12 +20,12 @@
     }
   ],
   "engines": {
-    "node": ">= 0.8.0"
+    "node": ">= 0.10.0"
   },
   "files": [
     "index.js",
-    "install.js",
     "src",
+    "test",
     "binding.gyp"
   ],
   "keywords": [
@@ -40,8 +40,11 @@
     "name": "Дмитрий Цветцих",
     "email": "me@reklatsmasters.com"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "mocha": "^2.1.0"
+  },
   "dependencies": {
     "nan": "^1.6.2"
-  }
+  },
+  "gypfile": true
 }
