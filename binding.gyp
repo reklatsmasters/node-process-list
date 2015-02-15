@@ -1,11 +1,11 @@
 {
 	"targets": [{
 		"target_name": "process-list",
-		"sources": [ 
+		"sources": [
 			"src/main.cpp"
 			, "src/snapshot.cpp"
 		],
-		"include_dirs":["src"],
+		"include_dirs":["src", "<!(node -e \"require('nan')\")"],
 
 		"conditions": [
 			['OS=="win"', {
@@ -22,7 +22,7 @@
 							'VCCLCompilerTool': {
 								'WarningLevel': 4,
 								'ExceptionHandling': 1,
-								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800]
+								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
 							}
 					  }
 					},
@@ -32,7 +32,7 @@
 							'VCCLCompilerTool': {
 								'WarningLevel': 4,
 								'ExceptionHandling': 1,
-								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800]
+								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
 							}
 					  }
 					}

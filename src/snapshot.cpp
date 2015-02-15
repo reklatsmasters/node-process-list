@@ -1,8 +1,5 @@
-#ifndef BUILDING_NODE_EXTENSION
-	#define BUILDING_NODE_EXTENSION
-#endif
-
 #include <node.h>
+#include <nan.h>
 #include "snapshot.h"
 #include "tasklist.h"
 
@@ -11,197 +8,147 @@
 
 using namespace v8;
 
-Handle<Value> snapshot_sync(const Arguments& args) {
-	HandleScope scope;
-	bool verbose = false;
+NAN_METHOD(snapshot_sync) {
+	NanScope();
 
 	// get list running processes
 	// TODO: exceptions
 	std::vector< std::shared_ptr<Process> > snap = tasklist ();
-	Local<Array> tasks = Array::New(snap.size());
+	Local<Array> tasks = NanNew<Array>(snap.size());
 
-	// read options
-	if (args.Length() && args[0]->IsObject()) {
-		Local<Object> options = args[0]->ToObject();
-
-		if (options->Has(String::New("verbose"))) {
-			verbose = options->Get(String::New("verbose"))->ToBoolean()->Value();
-		}
-	}
+	bool verbose = args[0]->ToBoolean()->Value();
 
 	for (uint32_t i = 0; i < tasks->Length(); ++i) {
 		if (verbose) {
-			Local<Object> hash = Object::New();
+			Local<Object> hash = NanNew<Object>();
 
 			hash->Set(
-			          String::New("name"),
-			          String::New( snap.at(i)->name().c_str() )
+				NanNew<String>("name"),
+				NanNew<String>( snap.at(i)->name().c_str() )
 			);
 
 			hash->Set(
-			          String::New("pid"),
-			          Number::New( snap.at(i)->pid() )
+				NanNew<String>("pid"),
+				NanNew<Number>( snap.at(i)->pid() )
 			);
 
 			hash->Set(
-			          String::New("ppid"),
-			          Number::New( snap.at(i)->parentPid() )
+				NanNew<String>("ppid"),
+				NanNew<Number>( snap.at(i)->parentPid() )
 			);
 
 			hash->Set(
-			          String::New("path"),
-			          String::New( snap.at(i)->path().c_str() )
+				NanNew<String>("path"),
+				NanNew<String>( snap.at(i)->path().c_str() )
 			);
 
 			hash->Set(
-			          String::New("threads"),
-			          Number::New( snap.at(i)->threads() )
+				NanNew<String>("threads"),
+				NanNew<Number>( snap.at(i)->threads() )
 			);
 
 			hash->Set(
-			          String::New("owner"),
-			          String::New( snap.at(i)->owner().c_str() )
+				NanNew<String>("owner"),
+				NanNew<String>( snap.at(i)->owner().c_str() )
 			);
 
 			hash->Set(
-			          String::New("priority"),
-			          Number::New( snap.at(i)->priority() )
-			);
-
-			tasks->Set(i, hash);
-		} else {
-			tasks->Set(i, String::New( snap.at(i)->name().c_str() ));
-		}
-	}
-
-	return scope.Close(tasks);
-}
-
-typedef struct _AsyncData {
-	Persistent<Function>                    callback;
-	std::vector< std::shared_ptr<Process> > tasks;
-	bool                                    verbose;
-} AsyncData;
-
-void AsyncWork(uv_work_t *job) {
-	AsyncData *asyncData = (AsyncData *)job->data;
-	asyncData->tasks = tasklist ();
-}
-
-void AsyncAfter(uv_work_t *job) {
-	HandleScope scope;
-
-	AsyncData *asyncData = (AsyncData *)job->data;
-	Local<Array> tasks = Array::New(asyncData->tasks.size());
-
-	for (uint32_t i = 0; i < tasks->Length(); ++i) {
-		if (asyncData->verbose) {
-			Local<Object> hash = Object::New();
-
-			hash->Set(
-			          String::New("name"),
-			          String::New( asyncData->tasks.at(i)->name().c_str() )
-			);
-
-			hash->Set(
-			          String::New("pid"),
-			          Number::New( asyncData->tasks.at(i)->pid() )
-			);
-
-			hash->Set(
-			          String::New("ppid"),
-			          Number::New( asyncData->tasks.at(i)->parentPid() )
-			);
-
-			hash->Set(
-			          String::New("path"),
-			          String::New( asyncData->tasks.at(i)->path().c_str() )
-			);
-
-			hash->Set(
-			          String::New("threads"),
-			          Number::New( asyncData->tasks.at(i)->threads() )
-			);
-
-			hash->Set(
-			          String::New("owner"),
-			          String::New( asyncData->tasks.at(i)->owner().c_str() )
-			);
-
-
-			hash->Set(
-			          String::New("priority"),
-			          Number::New( asyncData->tasks.at(i)->priority() )
+				NanNew<String>("priority"),
+				NanNew<Number>( snap.at(i)->priority() )
 			);
 
 			tasks->Set(i, hash);
 		} else {
-			tasks->Set(i, String::New( asyncData->tasks.at(i)->name().c_str() ));
+			tasks->Set(i, NanNew<String>( snap.at(i)->name().c_str() ));
 		}
 	}
 
-	Handle<Value> argv[] = {
-	    Undefined(),
-	    tasks
-	};
-
-	TryCatch try_catch;
-	asyncData->callback->Call(Context::GetCurrent()->Global(), 2, argv);
-
-	if (try_catch.HasCaught()) {
-		node::FatalException(try_catch);
-	}
-
-	asyncData->callback.Dispose();
-	delete asyncData;
-	delete job;
+	NanReturnValue(tasks);
 }
 
-v8::Handle<v8::Value> snapshot_async(const v8::Arguments& args) {
-	HandleScope scope;
+class SnapshotWorker : public NanAsyncWorker {
+public:
+	SnapshotWorker(NanCallback *callback, bool _verbose = false)
+	: NanAsyncWorker(callback)
+	{
+		verbose = _verbose;
+	}
 
-	bool verbose = false;
-	Persistent<Function> cb;
+	~SnapshotWorker(){};
 
-	// read options
-	if ( args.Length() ) {
+	void Execute () {
+		tasks = tasklist ();
+	}
 
-		if (args[0]->IsObject()) {
-			Local<Object> options = args[0]->ToObject();
+	void HandleOKCallback () {
+		NanScope();
 
-			if (options->Has(String::New("verbose"))) {
-				verbose = options->Get(String::New("verbose"))->ToBoolean()->Value();
+		Local<Array> jobs = NanNew<Array>(tasks.size());
+
+		for (uint32_t i = 0; i < jobs->Length(); ++i) {
+			if (verbose) {
+				Local<Object> hash = NanNew<Object>();
+
+				hash->Set(
+					NanNew<String>("name"),
+					NanNew<String>( tasks.at(i)->name().c_str() )
+				);
+
+				hash->Set(
+					NanNew<String>("pid"),
+					NanNew<Number>( tasks.at(i)->pid() )
+				);
+
+				hash->Set(
+					NanNew<String>("ppid"),
+					NanNew<Number>( tasks.at(i)->parentPid() )
+				);
+
+				hash->Set(
+					NanNew<String>("path"),
+					NanNew<String>( tasks.at(i)->path().c_str() )
+				);
+
+				hash->Set(
+					NanNew<String>("threads"),
+					NanNew<Number>( tasks.at(i)->threads() )
+				);
+
+				hash->Set(
+					NanNew<String>("owner"),
+					NanNew<String>( tasks.at(i)->owner().c_str() )
+				);
+
+				hash->Set(
+					NanNew<String>("priority"),
+					NanNew<Number>( tasks.at(i)->priority() )
+				);
+
+				jobs->Set(i, hash);
+			} else {
+				jobs->Set(i, NanNew<String>( tasks.at(i)->name().c_str() ));
 			}
 		}
 
-		// callback required
-		if ( (args.Length() == 1) && args[0]->IsFunction() ) {
-			cb = Persistent<Function>::New( Local<Function>::Cast(args[0]) );
-		} else if ( (args.Length() >= 2) && args[1]->IsFunction()) {
-			cb = Persistent<Function>::New( Local<Function>::Cast(args[1]) );
-		} else {
-			ThrowException(Exception::TypeError(String::New("Wrong arguments: callback function required")));
-			return scope.Close(Undefined());
-		}
-	} else {
-		ThrowException(Exception::TypeError(String::New("Wrong number of arguments: 1 argument required, but only 0 present")));
-		return scope.Close(Undefined());
+		Local<Value> argv[] = {
+			NanNull(),
+			jobs
+		};
+
+		callback->Call(2, argv);
 	}
 
-	uv_work_t *job = new uv_work_t;
-	AsyncData *asyncData = new AsyncData;
+private:
+	std::vector< std::shared_ptr<Process> > tasks;
+	bool verbose;
+};
 
-	asyncData->verbose = verbose;
-	asyncData->callback = cb;
+NAN_METHOD(snapshot_async) {
+	NanScope();
 
-	job->data = asyncData;
+	bool verbose = args[0]->ToBoolean()->Value();
+	NanCallback *callback = new NanCallback(args[1].As<Function>());
 
-	uv_queue_work(
-	              uv_default_loop(),
-	              job,
-	              AsyncWork,
-	              (uv_after_work_cb)AsyncAfter
-	);
-
-	return scope.Close(Undefined());
+	NanAsyncQueueWorker(new SnapshotWorker(callback, verbose));
+	NanReturnUndefined();
 }

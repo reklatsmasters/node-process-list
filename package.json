@@ -4,9 +4,7 @@
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "node ./install.js",
-    "install": "exit 0"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -44,9 +42,6 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "download": "^1.0.2",
-    "find-file": "^0.1.4",
-    "log-symbols": "^1.0.0",
-    "string.prototype.endswith": "^0.2.0"
+    "nan": "^1.6.2"
   }
 }
