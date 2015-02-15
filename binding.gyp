@@ -1,6 +1,6 @@
 {
 	"targets": [{
-		"target_name": "process-list",
+		"target_name": "processlist",
 		"sources": [
 			"src/main.cpp"
 			, "src/snapshot.cpp"
@@ -54,14 +54,13 @@
 		]
 	},
 
-		{
-			"target_name":"action_after_build",
-			"type": "none",
-			"dependencies": [ "process-list" ],
-			"copies": [{
-				"files": [ "<(PRODUCT_DIR)/process-list.node" ],
-				"destination": "./lib/"
-			}]
-		}
-	]
+	{
+		"target_name":"action_after_build",
+		"type": "none",
+		"dependencies": [ "processlist" ],
+		"copies": [{
+			"files": [ "<(PRODUCT_DIR)/processlist.node" ],
+			"destination": "./lib/"
+		}]
+	}]
 }

@@ -1,17 +1,9 @@
-#include <node.h>
 #include <nan.h>
 #include "snapshot.h"
 
-using namespace v8;
-
-void init(Handle<Object> exports) {
-	// sync api
-	exports->Set(NanNew<String>("snapshotSync"),
-		NanNew<FunctionTemplate>(snapshot_sync)->GetFunction());
-
-	// async api
-	exports->Set(NanNew<String>("snapshot"),
-		NanNew<FunctionTemplate>(snapshot_async)->GetFunction());
+void init(v8::Handle<v8::Object> exports) {
+	NODE_SET_METHOD(exports, "snapshotSync", snapshot_sync);
+	NODE_SET_METHOD(exports, "snapshot", snapshot_async);
 }
 
-NODE_MODULE(process_list, init)
+NODE_MODULE(processlist, init);

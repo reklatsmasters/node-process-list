@@ -1,4 +1,3 @@
-#include <node.h>
 #include <nan.h>
 #include "snapshot.h"
 #include "tasklist.h"
