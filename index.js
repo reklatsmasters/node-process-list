@@ -4,7 +4,7 @@ var scope = require('./lib/processlist');
 
 // sync api
 exports.snapshotSync = function(opts) {
-  return scope.snapshotSync(opts.verbose);
+  return scope.snapshotSync(opts && opts.verbose);
 };
 
 // async api
