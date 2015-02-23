@@ -13,12 +13,7 @@
   "bugs": {
     "url": "https://github.com/reklatsmasters/node-process-list/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "/blob/master/LICENSE-MIT"
-    }
-  ],
+  "license": "MIT",
   "engines": {
     "node": ">= 0.10.0"
   },
@@ -37,7 +32,7 @@
     "launched"
   ],
   "author": {
-    "name": "Дмитрий Цветцих",
+    "name": "Dmitry Tsvettsikh",
     "email": "me@reklatsmasters.com"
   },
   "devDependencies": {
