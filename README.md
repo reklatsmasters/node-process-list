@@ -1,29 +1,28 @@
 # node-process-list
 
-> Cross-platform method to receive the list of the launched processes.
+> Cross-platform native method to receive the list of the launched processes.
 
 ## Install
-You do not need a compiler to compile the package. Module is already compiled. Just install.
-
-```bash
-npm install process-list
-```
-Supported OS:
-* Windows 7+ (maybe Vista)
-* Linux (Ubuntu, CentOS and other)
-* MacOS - supported, but **not tested**.
-
-#### install from sources
-If none of the compiled binaries does not fit, you will be asked to compile the package from source.
+You need build tools for native module.
 
 1. Install Python 2.7
-2. For Windows: Install MSVC 2013
-3. For Unix: install / update GCC to 4.8 and later
-4. ``` npm install -g node-gyp ```
-5. ``` node-gyp rebuild ```
-    
-See [node-gyp](https://github.com/TooTallNate/node-gyp) for more info.
+2. _Windows_: Install MSVC 2013 or newer
+3. _Unix_: install GCC to 4.8 or newer
+4. install node build tool `npm i -g pangyp` See [pangyp](https://npmjs.org/package/pangyp) for more info.
 
+```bash
+npm i process-list
+```
+Supported OS:
+* Windows 7+ (maybe Vista and XP)
+* Linux (Ubuntu, CentOS and other)
+* MacOS - ???.
+
+Supported engines:
+* nodejs 0.10+
+* iojs
+
+**N.B.** Windows x64 + iojs <= 1.3 has error when build.
 
 ### Example: simple info
 ```js
@@ -67,6 +66,6 @@ console.log(tasks.snapshotSync());
 * CPU usage per process
 * Memory usage per process
 * Command line (for Windows)
-* ~~Process priority~~
-* Dependencies of the process
 * Сustomizable information
+* Dependencies of the process
+* ~~Process priority~~
