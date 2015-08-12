@@ -8,7 +8,7 @@
 		"include_dirs":["src", "<!(node -e \"require('nan')\")"],
 
 		"conditions": [
-			['OS=="win"', {
+			["OS=='win'", {
 				"defines": [
 					"UNICODE",
 					"_UNICODE "
@@ -17,22 +17,22 @@
 					"src/win/win_tasklist.cpp"
 				],
 				"configurations": {
-					'Release': {
-					  'msvs_settings': {
-							'VCCLCompilerTool': {
-								'WarningLevel': 4,
-								'ExceptionHandling': 1,
-								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
+					"Release": {
+					  "msvs_settings": {
+							"VCCLCompilerTool": {
+								"WarningLevel": 4,
+								"ExceptionHandling": 1,
+								"DisableSpecificWarnings": [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
 							}
 					  }
 					},
 
-					'Debug': {
-					  'msvs_settings': {
-							'VCCLCompilerTool': {
-								'WarningLevel': 4,
-								'ExceptionHandling': 1,
-								'DisableSpecificWarnings': [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
+					"Debug": {
+					  "msvs_settings": {
+							"VCCLCompilerTool": {
+								"WarningLevel": 4,
+								"ExceptionHandling": 1,
+								"DisableSpecificWarnings": [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
 							}
 					  }
 					}
@@ -41,15 +41,24 @@
 				"sources": [
 					"src/unix/tasklist.cpp"
 				],
-				'cflags_cc!': ['-fno-rtti', '-fno-exceptions'],
+				"cflags_cc!": ["-fno-rtti", "-fno-exceptions"],
 				"cflags_cc+": [
 					"-fexceptions",
 					"-std=c++0x",
-					'-frtti'
+					"-frtti"
 				]
 			}],
-			['OS=="mac"', {
-			    'xcode_settings': { 'GCC_ENABLE_CPP_RTTI': 'YES' }
+			["OS=='mac'", {
+				"xcode_settings": {
+					"GCC_ENABLE_CPP_RTTI": "YES",
+					"OTHER_CFLAGS": [
+						"-fexceptions",
+						"-std=c++11",
+						"-stdlib=libc++",
+						"-frtti",
+						"-mmacosx-version-min=10.7"
+			    	]
+				},
 			}]
 		]
 	},
