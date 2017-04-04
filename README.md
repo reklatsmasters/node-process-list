@@ -1,4 +1,4 @@
-# process-list [![npm](https://img.shields.io/npm/v/process-list.svg)](https://npmjs.org/package/process-list) [![license](https://img.shields.io/npm/l/process-list.svg)](https://npmjs.org/package/process-list) [![downloads](https://img.shields.io/npm/dm/process-list.svg)](https://npmjs.org/package/process-list)
+# process-list [![Build Status](https://travis-ci.org/reklatsmasters/node-process-list.svg?branch=master)](https://travis-ci.org/reklatsmasters/node-process-list) [![npm](https://img.shields.io/npm/v/process-list.svg)](https://npmjs.org/package/process-list) [![license](https://img.shields.io/npm/l/process-list.svg)](https://npmjs.org/package/process-list) [![downloads](https://img.shields.io/npm/dm/process-list.svg)](https://npmjs.org/package/process-list)
 
 Cross-platform native method to receive the list of the launched processes.
 
