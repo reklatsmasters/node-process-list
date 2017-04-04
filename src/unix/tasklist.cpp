@@ -20,7 +20,7 @@
 	#define MAX_READ 2048
 #endif
 
-// проверяет строку на целое число
+// check if string is int
 bool is_pid (const std::string &data) {
 	if (data.empty ()) {
 		return false;
@@ -56,7 +56,7 @@ static ssize_t xread(int fd, void *buf, size_t count) {
 }
 
 /**
- * Читает каталог данных
+ * data dir reader
  * ex: `/proc`
  */
 class Reader {
@@ -93,9 +93,6 @@ private:
 	std::vector<std::string> catalog;
 };
 
-/**
- * Объект, содержащий данные о процессе
- */
 class Task : public Process {
 public:
 	Task (const std::string &pid)
@@ -150,23 +147,23 @@ public:
 	}
 	
 private:
-	std::string m_prefix;	// префикс пути к данным процесса
+	std::string m_prefix;	// path to the process in procfs
 
 	uint32_t	m_pid;
-	uint32_t	m_ppid;		// process id of the parent process
+	uint32_t	m_ppid;			// pid of the parent process
 	uint32_t	m_threads;	// number of threads
 
 	std::string m_name;
 	std::string m_path;
 	std::string m_cmdline;
 
-	char		m_state;	// state (R is running, S is sleeping, D is sleeping in an
-							// uninterruptible wait, Z is zombie, T is traced or stopped)
+	char		m_state;			// state (R is running, S is sleeping, D is sleeping in an
+												// uninterruptible wait, Z is zombie, T is traced or stopped)
 
-	uint32_t	m_pgrp;		// pgrp of the process, to detect kernel thread
+	uint32_t	m_pgrp;			// pgrp of the process, to detect kernel thread
 	int32_t		m_priority;	// priority level
 
-	size_t		m_size;		// size of file, in bytes
+	size_t		m_size;			// size of file, in bytes
 	std::string	m_owner;
 
 
@@ -322,7 +319,7 @@ private:
 };
 
 /**
- * Делает снимок системы, получает список процессов
+ * get process list
  */
 class Snapshot {
 public:
@@ -330,7 +327,7 @@ public:
 		std::shared_ptr<Reader> reader = Reader::New ("/proc");
 		std::vector<std::string> data = reader->list ();
 
-		// фильтруем данные, берём только пиды процессов
+		// filter data, get only process pid
 		std::copy_if(data.begin (), data.end (), std::back_inserter(m_pids), [](const std::string &pid){
 			return is_pid(pid) && (pid != "0");
 		});
@@ -344,8 +341,7 @@ public:
 	}
 
 	/**
-	 * Конструирует объекты `Task` для каждого
-	 * найденного PID процесса
+	 * construct <Task> from each found pid
 	 */
 	void prepare() {
 		std::for_each(m_pids.begin (), m_pids.end(), [this](const std::string &pid){
@@ -355,7 +351,7 @@ public:
 	}
 
 	/**
-	 * количество запущенных процессов
+	 * process count
 	 */
 	inline size_t length() {
 		return m_pids.size ();
