@@ -39,7 +39,7 @@
     "mocha": "^2.1.0"
   },
   "dependencies": {
-    "nan": "^1.6.2"
+    "nan": "^2.5.1"
   },
   "gypfile": true
 }

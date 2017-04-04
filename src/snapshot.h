@@ -1,9 +1,8 @@
-#ifndef V8DECODE_H
-#define V8DECODE_H
+#ifndef PROCESS_LIST_H
+#define PROCESS_LIST_H
 
 #include <nan.h>
 
-NAN_METHOD(snapshot_sync);
-NAN_METHOD(snapshot_async);
+NAN_METHOD(snapshot);
 
 #endif

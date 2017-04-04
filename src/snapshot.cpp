@@ -7,70 +7,13 @@
 
 using namespace v8;
 
-NAN_METHOD(snapshot_sync) {
-	NanScope();
+#define _NAN_STRING(s) Nan::New<v8::String>(s).ToLocalChecked()
 
-	// get list running processes
-	// TODO: exceptions
-	std::vector< std::shared_ptr<Process> > snap = tasklist ();
-	Local<Array> tasks = NanNew<Array>(snap.size());
-
-	bool verbose = args[0]->ToBoolean()->Value();
-
-	for (uint32_t i = 0; i < tasks->Length(); ++i) {
-		if (verbose) {
-			Local<Object> hash = NanNew<Object>();
-
-			hash->Set(
-				NanNew<String>("name"),
-				NanNew<String>( snap.at(i)->name().c_str() )
-			);
-
-			hash->Set(
-				NanNew<String>("pid"),
-				NanNew<Number>( snap.at(i)->pid() )
-			);
-
-			hash->Set(
-				NanNew<String>("ppid"),
-				NanNew<Number>( snap.at(i)->parentPid() )
-			);
-
-			hash->Set(
-				NanNew<String>("path"),
-				NanNew<String>( snap.at(i)->path().c_str() )
-			);
-
-			hash->Set(
-				NanNew<String>("threads"),
-				NanNew<Number>( snap.at(i)->threads() )
-			);
-
-			hash->Set(
-				NanNew<String>("owner"),
-				NanNew<String>( snap.at(i)->owner().c_str() )
-			);
-
-			hash->Set(
-				NanNew<String>("priority"),
-				NanNew<Number>( snap.at(i)->priority() )
-			);
-
-			tasks->Set(i, hash);
-		} else {
-			tasks->Set(i, NanNew<String>( snap.at(i)->name().c_str() ));
-		}
-	}
-
-	NanReturnValue(tasks);
-}
-
-class SnapshotWorker : public NanAsyncWorker {
+class SnapshotWorker : public Nan::AsyncWorker {
 public:
-	SnapshotWorker(NanCallback *callback, bool _verbose = false)
-	: NanAsyncWorker(callback)
+	SnapshotWorker(Nan::Callback *callback, bool _verbose = false)
+	: Nan::AsyncWorker(callback), verbose(_verbose)
 	{
-		verbose = _verbose;
 	}
 
 	~SnapshotWorker(){};
@@ -80,61 +23,44 @@ public:
 	}
 
 	void HandleOKCallback () {
-		NanScope();
+		Nan::HandleScope scope;
 
-		Local<Array> jobs = NanNew<Array>(tasks.size());
+		Local<Array> jobs = Nan::New<Array>( tasks.size() );
 
 		for (uint32_t i = 0; i < jobs->Length(); ++i) {
 			if (verbose) {
-				Local<Object> hash = NanNew<Object>();
+				Local<Object> hash = Nan::New<Object>();
 
-				hash->Set(
-					NanNew<String>("name"),
-					NanNew<String>( tasks.at(i)->name().c_str() )
-				);
+				Nan::Set(hash, _NAN_STRING("name"), _NAN_STRING(tasks.at(i)->name()));
+				Nan::Set(hash, _NAN_STRING("pid"), Nan::New<Number>(tasks.at(i)->pid()));
+				Nan::Set(hash, _NAN_STRING("ppid"), Nan::New<Number>(tasks.at(i)->parentPid()));
+				Nan::Set(hash, _NAN_STRING("path"), _NAN_STRING(tasks.at(i)->path()));
+				Nan::Set(hash, _NAN_STRING("threads"), Nan::New<Number>(tasks.at(i)->threads()));
+				Nan::Set(hash, _NAN_STRING("owner"), _NAN_STRING(tasks.at(i)->owner()));
+				Nan::Set(hash, _NAN_STRING("priority"), Nan::New<Number>(tasks.at(i)->priority()));
 
-				hash->Set(
-					NanNew<String>("pid"),
-					NanNew<Number>( tasks.at(i)->pid() )
-				);
-
-				hash->Set(
-					NanNew<String>("ppid"),
-					NanNew<Number>( tasks.at(i)->parentPid() )
-				);
-
-				hash->Set(
-					NanNew<String>("path"),
-					NanNew<String>( tasks.at(i)->path().c_str() )
-				);
-
-				hash->Set(
-					NanNew<String>("threads"),
-					NanNew<Number>( tasks.at(i)->threads() )
-				);
-
-				hash->Set(
-					NanNew<String>("owner"),
-					NanNew<String>( tasks.at(i)->owner().c_str() )
-				);
-
-				hash->Set(
-					NanNew<String>("priority"),
-					NanNew<Number>( tasks.at(i)->priority() )
-				);
-
-				jobs->Set(i, hash);
+				Nan::Set(jobs, i, hash);
 			} else {
-				jobs->Set(i, NanNew<String>( tasks.at(i)->name().c_str() ));
+				Nan::Set(jobs, i, _NAN_STRING(tasks.at(i)->name()));
 			}
 		}
 
 		Local<Value> argv[] = {
-			NanNull(),
+			Nan::Null(),
 			jobs
 		};
 
 		callback->Call(2, argv);
+	}
+
+	void HandleErrorCallback () {
+		Nan::HandleScope scope;
+
+		Local<Value> argv[] = {
+			Nan::Error("internal error")
+		};
+
+		callback->Call(1, argv);
 	}
 
 private:
@@ -142,12 +68,9 @@ private:
 	bool verbose;
 };
 
-NAN_METHOD(snapshot_async) {
-	NanScope();
+NAN_METHOD(snapshot) {
+	bool verbose = Nan::To<bool>(info[0]).FromJust();
+	auto *callback = new Nan::Callback(info[1].As<Function>());
 
-	bool verbose = args[0]->ToBoolean()->Value();
-	NanCallback *callback = new NanCallback(args[1].As<Function>());
-
-	NanAsyncQueueWorker(new SnapshotWorker(callback, verbose));
-	NanReturnUndefined();
+	Nan::AsyncQueueWorker(new SnapshotWorker(callback, verbose));
 }
