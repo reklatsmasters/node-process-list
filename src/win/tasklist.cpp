@@ -255,13 +255,13 @@ public:
 		while (this->takeNext()) { }
 	}
 
-	inline std::vector< std::shared_ptr<Process> > list () const {
+	inline tasklist_t list () const {
 		return scope;
 	}
 
 private:
 	HANDLE hProcessSnap;
-	std::vector< std::shared_ptr<Process> > scope;
+	tasklist_t scope;
 
 	void takeFirst () {
 		std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory ();
@@ -289,7 +289,7 @@ private:
 };
 
 
-std::vector< std::shared_ptr<Process> > tasklist () {
+tasklist_t tasklist () {
 	std::shared_ptr<Snapshot> snap = std::make_shared<Snapshot> ();
 	snap->prepare ();
 

@@ -19,6 +19,8 @@ public:
 	virtual int32_t priority () const = 0;
 };
 
-std::vector< std::shared_ptr<Process> > tasklist ();
+typedef std::vector<std::shared_ptr<Process>> tasklist_t;
+
+tasklist_t tasklist ();
 
 #endif

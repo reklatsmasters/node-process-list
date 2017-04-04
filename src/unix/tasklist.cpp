@@ -357,16 +357,16 @@ public:
 		return m_pids.size ();
 	}
 
-	inline std::vector< std::shared_ptr<Process> > tasks() const {
+	inline tasklist_t tasks() const {
 		return m_scope;
 	}
 
 private:
 	std::vector<std::string>					m_pids;
-	std::vector< std::shared_ptr<Process> >		m_scope;
+	tasklist_t		m_scope;
 };
 
-std::vector< std::shared_ptr<Process> > tasklist() {
+tasklist_t tasklist() {
 	auto snapshot = Snapshot::New ();
 	return snapshot->tasks ();
 }

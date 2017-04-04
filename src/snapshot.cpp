@@ -64,7 +64,7 @@ public:
 	}
 
 private:
-	std::vector< std::shared_ptr<Process> > tasks;
+	tasklist_t tasks;
 	bool verbose;
 };
 
