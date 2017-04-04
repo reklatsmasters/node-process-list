@@ -4,7 +4,7 @@
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
   "scripts": {
-    "test": "node_modules/.bin/mocha -R spec"
+    "test": "ava test/*.js"
   },
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
     "email": "me@reklatsmasters.com"
   },
   "devDependencies": {
-    "mocha": "^2.1.0"
+    "ava": "^0.18.2"
   },
   "dependencies": {
     "nan": "^2.5.1",
