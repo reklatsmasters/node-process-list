@@ -15,7 +15,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">= 0.10.0"
+    "node": ">= 4"
   },
   "files": [
     "index.js",
@@ -39,7 +39,8 @@
     "mocha": "^2.1.0"
   },
   "dependencies": {
-    "nan": "^2.5.1"
+    "nan": "^2.5.1",
+    "pify": "^2.3.0"
   },
   "gypfile": true
 }

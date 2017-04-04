@@ -1,18 +1,21 @@
-'use strict';
+'use strict'
 
-var scope = require('./lib/processlist');
+const ps = require('./lib/processlist')
+const then = require('pify')
 
-// sync api
-exports.snapshotSync = function(opts) {
-  return scope.snapshotSync(opts && opts.verbose);
-};
+const es6snapshot = then(ps.snapshot)
 
-// async api
-exports.snapshot = function(opts, cb) {
-  if (typeof opts === 'function') {
-    cb = opts;
-    opts = {};
-  }
+module.exports = {
+  snapshot
+}
 
-  return scope.snapshot(opts.verbose, cb);
-};
+/**
+ * get process list
+ * @param {Object} opts
+ * @param {bool} opts.verbose
+ */
+function snapshot(opts) {
+  opts = opts || {}
+
+  return es6snapshot(opts.verbose)
+}
