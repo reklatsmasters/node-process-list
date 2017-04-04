@@ -14,7 +14,7 @@ module.exports = {
  * @param {Object} opts
  * @param {bool} opts.verbose
  */
-function snapshot(opts) {
+function snapshot (opts) {
   opts = opts || {}
 
   return es6snapshot(opts.verbose)
