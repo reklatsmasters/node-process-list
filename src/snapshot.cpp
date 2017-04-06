@@ -7,12 +7,25 @@
 
 using namespace v8;
 
-#define _NAN_STRING(s) Nan::New<v8::String>(s).ToLocalChecked()
+#define STR(s) Nan::New<v8::String>(s).ToLocalChecked()
 
-class SnapshotWorker : public Nan::AsyncWorker {
+#define PROP_BOOL(obj, prop) Nan::To<bool>(Nan::Get(obj, STR(prop)).ToLocalChecked()).FromJust()
+
+struct ProcessFields {
+  bool pid;
+  bool ppid;
+  bool name;
+  bool path;
+  bool owner;
+  bool threads;
+  bool priority;
+};
+
+class SnapshotWorker : public Nan::AsyncWorker
+{
 public:
-	SnapshotWorker(Nan::Callback *callback, bool _verbose = false)
-	: Nan::AsyncWorker(callback), verbose(_verbose)
+	SnapshotWorker(Nan::Callback *callback, const struct ProcessFields &fields)
+	: Nan::AsyncWorker(callback), psfields(fields)
 	{
 	}
 
@@ -28,21 +41,37 @@ public:
 		Local<Array> jobs = Nan::New<Array>( tasks.size() );
 
 		for (uint32_t i = 0; i < jobs->Length(); ++i) {
-			if (verbose) {
-				Local<Object> hash = Nan::New<Object>();
+			Local<Object> hash = Nan::New<Object>();
 
-				Nan::Set(hash, _NAN_STRING("name"), _NAN_STRING(tasks.at(i)->name()));
-				Nan::Set(hash, _NAN_STRING("pid"), Nan::New<Number>(tasks.at(i)->pid()));
-				Nan::Set(hash, _NAN_STRING("ppid"), Nan::New<Number>(tasks.at(i)->parentPid()));
-				Nan::Set(hash, _NAN_STRING("path"), _NAN_STRING(tasks.at(i)->path()));
-				Nan::Set(hash, _NAN_STRING("threads"), Nan::New<Number>(tasks.at(i)->threads()));
-				Nan::Set(hash, _NAN_STRING("owner"), _NAN_STRING(tasks.at(i)->owner()));
-				Nan::Set(hash, _NAN_STRING("priority"), Nan::New<Number>(tasks.at(i)->priority()));
-
-				Nan::Set(jobs, i, hash);
-			} else {
-				Nan::Set(jobs, i, _NAN_STRING(tasks.at(i)->name()));
+			if (psfields.name) {
+				Nan::Set(hash, STR("name"), STR(tasks.at(i)->name()));
 			}
+
+			if (psfields.pid) {
+				Nan::Set(hash, STR("pid"), Nan::New<Number>(tasks.at(i)->pid()));
+			}
+
+			if (psfields.ppid) {
+				Nan::Set(hash, STR("ppid"), Nan::New<Number>(tasks.at(i)->parentPid()));
+			}
+
+			if (psfields.path) {
+				Nan::Set(hash, STR("path"), STR(tasks.at(i)->path()));
+			}
+
+			if (psfields.threads) {
+				Nan::Set(hash, STR("threads"), Nan::New<Number>(tasks.at(i)->threads()));
+			}
+			
+			if (psfields.owner) {
+				Nan::Set(hash, STR("owner"), STR(tasks.at(i)->owner()));
+			}
+			
+			if (psfields.priority) {
+				Nan::Set(hash, STR("priority"), Nan::New<Number>(tasks.at(i)->priority()));
+			}
+
+			Nan::Set(jobs, i, hash);
 		}
 
 		Local<Value> argv[] = {
@@ -65,12 +94,23 @@ public:
 
 private:
 	tasklist_t tasks;
-	bool verbose;
+	ProcessFields psfields;
 };
 
 NAN_METHOD(snapshot) {
-	bool verbose = Nan::To<bool>(info[0]).FromJust();
-	auto *callback = new Nan::Callback(info[1].As<Function>());
+  auto arg0 = info[0].As<Object>();
 
-	Nan::AsyncQueueWorker(new SnapshotWorker(callback, verbose));
+  ProcessFields fields = {
+		PROP_BOOL(arg0, "pid"),
+		PROP_BOOL(arg0, "ppid"),
+		PROP_BOOL(arg0, "name"),
+		PROP_BOOL(arg0, "path"),
+		PROP_BOOL(arg0, "owner"),
+		PROP_BOOL(arg0, "threads"),
+		PROP_BOOL(arg0, "priority")
+	};
+
+  auto *callback = new Nan::Callback(info[1].As<Function>());
+
+  Nan::AsyncQueueWorker(new SnapshotWorker(callback, fields));
 }

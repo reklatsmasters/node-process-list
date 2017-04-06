@@ -5,17 +5,54 @@ const then = require('pify')
 
 const es6snapshot = then(ps.snapshot)
 
+const allowedFields = Object.freeze([
+  'name',
+  'pid',
+  'ppid',
+  'path',
+  'threads',
+  'owner',
+  'priority'
+])
+
+const defaultFields = {
+  pid: true,
+  name: true,
+  path: true
+}
+
 module.exports = {
-  snapshot
+  snapshot,
+  allowedFields
 }
 
 /**
  * get process list
  * @param {Object} opts
- * @param {bool} opts.verbose
+ * @param {bool} opts.pid
+ * @param {bool} opts.ppid
+ * @param {bool} opts.name
+ * @param {bool} opts.path
+ * @param {bool} opts.owner
+ * @param {bool} opts.threads
+ * @param {bool} opts.priority
  */
-function snapshot (opts) {
-  opts = opts || {}
+function snapshot (args) {
+  let opts = {}
 
-  return es6snapshot(opts.verbose)
+  args = Array.isArray(args) ? args : Array.from(arguments)
+
+  if (!args.length) {
+    opts = defaultFields
+  }
+
+  for (let i = 0; i < args.length; ++i) {
+    if (allowedFields.indexOf(args[i]) === -1) {
+      throw new Error(`Unknown field "${args[i]}"`)
+    }
+
+    opts[args[i]] = true
+  }
+
+  return es6snapshot(opts)
 }
