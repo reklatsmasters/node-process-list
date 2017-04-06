@@ -32,7 +32,7 @@ public:
 	~SnapshotWorker(){};
 
 	void Execute () {
-		tasks = tasklist ();
+	  tasks = pl::task::list();
 	}
 
 	void HandleOKCallback () {
@@ -93,7 +93,7 @@ public:
 	}
 
 private:
-	tasklist_t tasks;
+	pl::task::list_t tasks;
 	ProcessFields psfields;
 };
 

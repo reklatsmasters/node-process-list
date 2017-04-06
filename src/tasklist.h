@@ -6,6 +6,8 @@
 #include <string>
 #include <stdint.h>
 
+namespace pl {
+
 class Process {
 public:
 	~Process () {}
@@ -19,8 +21,12 @@ public:
 	virtual int32_t priority () const = 0;
 };
 
-typedef std::vector<std::shared_ptr<Process>> tasklist_t;
+namespace task {
+	typedef std::vector<std::shared_ptr<Process>> list_t;
 
-tasklist_t tasklist ();
+	list_t list ();
+};	// task
 
-#endif
+};	// namespace pl
+
+#endif	// TASKLIST_H

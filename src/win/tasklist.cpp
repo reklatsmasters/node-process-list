@@ -143,7 +143,7 @@ private:
 };
 
 /* process info */
-class Entry : public Process {
+class Entry : public pl::Process {
 public:
 	Entry (std::shared_ptr<PROCESSENTRY32> entry)
 		: pEntry (std::move (entry)) 
@@ -255,13 +255,13 @@ public:
 		while (this->takeNext()) { }
 	}
 
-	inline tasklist_t list () const {
+	inline pl::task::list_t list () const {
 		return scope;
 	}
 
 private:
 	HANDLE hProcessSnap;
-	tasklist_t scope;
+	pl::task::list_t scope;
 
 	void takeFirst () {
 		std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory ();
@@ -288,10 +288,16 @@ private:
 	}
 };
 
+namespace pl {
+namespace task {
 
-tasklist_t tasklist () {
+list_t list () {
 	std::shared_ptr<Snapshot> snap = std::make_shared<Snapshot> ();
 	snap->prepare ();
 
 	return snap->list ();
+}
+
+}
+
 }

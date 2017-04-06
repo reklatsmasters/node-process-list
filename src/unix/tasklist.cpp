@@ -93,7 +93,7 @@ private:
 	std::vector<std::string> catalog;
 };
 
-class Task : public Process {
+class Task : public pl::Process {
 public:
 	Task (const std::string &pid)
 		: m_prefix("/proc/" + pid), m_pid(std::strtoul(pid.c_str (), 0, 10))
@@ -357,16 +357,23 @@ public:
 		return m_pids.size ();
 	}
 
-	inline tasklist_t tasks() const {
+	inline pl::task::list_t tasks() const {
 		return m_scope;
 	}
 
 private:
-	std::vector<std::string>					m_pids;
-	tasklist_t		m_scope;
+	std::vector<std::string> m_pids;
+	pl::task::list_t m_scope;
 };
 
-tasklist_t tasklist() {
+namespace pl {
+namespace task {
+
+list_t list() {
 	auto snapshot = Snapshot::New ();
 	return snapshot->tasks ();
+}
+
+}
+
 }
