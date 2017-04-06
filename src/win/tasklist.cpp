@@ -1,14 +1,15 @@
+#include "tasklist.h"  // NOLINT(build/include)
+
 #include <windows.h>
 #include <tlhelp32.h>
+#include <stdint.h>
 
 #include <memory>
-#include <stdint.h>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <codecvt>
-
-#include "tasklist.h"
+#include <string>
 
 #define MAX_NAME 256
 
@@ -21,283 +22,283 @@ std::string ws2s(const std::wstring& wstr) {
 }
 
 class HandleProcess {
-public:
-	HandleProcess (uint32_t pid) {
-		hProcess = OpenProcess (PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+ public:
+  explicit HandleProcess(uint32_t pid) {
+    hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 
-		if (!hProcess) {
-			throw std::bad_alloc ();
-		}
-	}
+    if (!hProcess) {
+      throw std::bad_alloc();
+    }
+  }
 
-	~HandleProcess () {
-		if (hProcess) {
-			CloseHandle (hProcess);
-		}
-	}
+  ~HandleProcess() {
+    if (hProcess) {
+      CloseHandle(hProcess);
+    }
+  }
 
-	// full image name of process
-	std::string path () const {
-		WCHAR *pProcessName = new WCHAR[MAX_PATH];
-		DWORD pProcessNameSize = MAX_PATH;
+  // full image name of process
+  std::string path() const {
+    WCHAR *pProcessName = new WCHAR[MAX_PATH];
+    DWORD pProcessNameSize = MAX_PATH;
 
-		BOOL iResult = QueryFullProcessImageName (hProcess, 0, pProcessName, &pProcessNameSize);
+    BOOL iResult = QueryFullProcessImageName(hProcess, 0, pProcessName,
+                                             &pProcessNameSize);
 
-		if (!iResult) {
-			return std::string ();
-		}
+    if (!iResult) {
+      return std::string();
+    }
 
-		std::wstring name (pProcessName, pProcessNameSize);
-		delete[] pProcessName;
+    std::wstring name(pProcessName, pProcessNameSize);
+    delete[] pProcessName;
 
-		return ws2s (name);
-	}
+    return ws2s(name);
+  }
 
-	// owner of the process
-	std::string owner () const {
-		HANDLE hToken = nullptr;
-		TOKEN_USER *pUserInfo = nullptr;
-		DWORD pTokenSize = 0;
-		SID_NAME_USE SidType;
+  // owner of the process
+  std::string owner() const {
+    HANDLE hToken = nullptr;
+    TOKEN_USER *pUserInfo = nullptr;
+    DWORD pTokenSize = 0;
+    SID_NAME_USE SidType;
 
-		WCHAR *pUserName = new WCHAR[MAX_NAME];
-		DWORD pUserSize = MAX_NAME;
+    WCHAR *pUserName = new WCHAR[MAX_NAME];
+    DWORD pUserSize = MAX_NAME;
 
-		WCHAR *pDomainName = new WCHAR[MAX_NAME];
-		DWORD pDomainSize = MAX_NAME;
+    WCHAR *pDomainName = new WCHAR[MAX_NAME];
+    DWORD pDomainSize = MAX_NAME;
 
-		//open the processes token
-		if (!OpenProcessToken (hProcess, TOKEN_QUERY, &hToken)) {
-			delete[] pUserName;
-			delete[] pDomainName;
+    // open the processes token
+    if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
+      delete[] pUserName;
+      delete[] pDomainName;
 
-			return std::string ();
-		}
+      return std::string();
+    }
 
-		// get the buffer size of the token
-		if (!GetTokenInformation (hToken, TokenUser, NULL, pTokenSize, &pTokenSize)) {
-			DWORD dwResult = GetLastError ();
+    // get the buffer size of the token
+    if (!GetTokenInformation(hToken, TokenUser, NULL, pTokenSize,
+                             &pTokenSize)) {
+      DWORD dwResult = GetLastError();
 
-			if (dwResult != ERROR_INSUFFICIENT_BUFFER) {
-				delete[] pUserName;
-				delete[] pDomainName;
-				CloseHandle (hToken);
+      if (dwResult != ERROR_INSUFFICIENT_BUFFER) {
+        delete[] pUserName;
+        delete[] pDomainName;
+        CloseHandle(hToken);
 
-				return std::string ();
-			}
-		}
+        return std::string();
+      }
+    }
 
-		if (!pTokenSize) {
-			delete[] pUserName;
-			delete[] pDomainName;
-			CloseHandle (hToken);
+    if (!pTokenSize) {
+      delete[] pUserName;
+      delete[] pDomainName;
+      CloseHandle(hToken);
 
-			return std::string ();
-		}
+      return std::string();
+    }
 
-		// Allocate the buffer of the token
-		pUserInfo = (TOKEN_USER*) HeapAlloc (GetProcessHeap (), HEAP_ZERO_MEMORY, pTokenSize);
+    // Allocate the buffer of the token
+    pUserInfo = reinterpret_cast<TOKEN_USER*> (HeapAlloc(GetProcessHeap(),
+      HEAP_ZERO_MEMORY, pTokenSize));
 
-		if (!pUserInfo) {
-			delete[] pUserName;
-			delete[] pDomainName;
-			CloseHandle (hToken);
+    if (!pUserInfo) {
+      delete[] pUserName;
+      delete[] pDomainName;
+      CloseHandle(hToken);
 
-			return std::string ();
-		}
+      return std::string ();
+    }
 
-		// Call GetTokenInformation again to get the SID of the token
-		if (!GetTokenInformation (hToken, TokenUser, pUserInfo, pTokenSize, &pTokenSize)) {
-			HeapFree (GetProcessHeap (), 0, pUserInfo);
-			delete[] pUserName;
-			delete[] pDomainName;
-			CloseHandle (hToken);
+    // Call GetTokenInformation again to get the SID of the token
+    if (!GetTokenInformation(hToken, TokenUser, pUserInfo, pTokenSize,
+                             &pTokenSize)) {
+      HeapFree(GetProcessHeap(), 0, pUserInfo);
+      delete[] pUserName;
+      delete[] pDomainName;
+      CloseHandle(hToken);
 
-			return std::string ();
-		}
+      return std::string ();
+    }
 
-		//get the account/domain name of the SID
-		if (!LookupAccountSid (NULL, pUserInfo->User.Sid, pUserName, &pUserSize, pDomainName, &pDomainSize, &SidType)) {
-			HeapFree (GetProcessHeap (), 0, pUserInfo);
-			delete[] pUserName;
-			delete[] pDomainName;
-			CloseHandle (hToken);
+    // get the account/domain name of the SID
+    if (!LookupAccountSid(NULL, pUserInfo->User.Sid, pUserName, &pUserSize,
+                          pDomainName, &pDomainSize, &SidType)) {
+      HeapFree(GetProcessHeap(), 0, pUserInfo);
+      delete[] pUserName;
+      delete[] pDomainName;
+      CloseHandle(hToken);
 
-			return std::string ();
-		}
+      return std::string();
+    }
 
-		std::wstring username (pUserName, pUserSize);
+    std::wstring username(pUserName, pUserSize);
 
-		HeapFree (GetProcessHeap (), 0, pUserInfo);
-		delete[] pUserName;
-		delete[] pDomainName;
-		CloseHandle (hToken);
+    HeapFree(GetProcessHeap(), 0, pUserInfo);
+    delete[] pUserName;
+    delete[] pDomainName;
+    CloseHandle(hToken);
 
-		return ws2s (username);
-	}
+    return ws2s(username);
+  }
 
-private:
-	HANDLE hProcess;
+ private:
+  HANDLE hProcess;
 
-	HandleProcess () = delete;
+  HandleProcess() = delete;
 };
 
 /* process info */
 class Entry : public pl::Process {
-public:
-	Entry (std::shared_ptr<PROCESSENTRY32> entry)
-		: pEntry (std::move (entry)) 
-	{
-		pProcess = nullptr;
+ public:
+  explicit Entry(std::shared_ptr<PROCESSENTRY32> entry)
+    : pEntry(std::move(entry)) {
+    pProcess = nullptr;
 
-		try {
-			pProcess = new HandleProcess ( pid() );
-		} catch (const std::bad_alloc &) {
-		}
-	}
+    try {
+      pProcess = new HandleProcess ( pid() );
+    } catch (const std::bad_alloc &) {
+    }
+  }
 
-	Entry (Entry&& v)
-		: pEntry(std::move(v.pEntry)) 
-	{ }
+  ~Entry() {
+    if (pProcess) {
+      delete pProcess;
+    }
+  }
 
-	~Entry () {
-		if (pProcess) {
-			delete pProcess;
-		}
-	}
+  static std::shared_ptr<PROCESSENTRY32> Factory() {
+    std::shared_ptr<PROCESSENTRY32> entry = std::make_shared<PROCESSENTRY32> ();
+    entry->dwSize = sizeof (PROCESSENTRY32);
 
-	static std::shared_ptr<PROCESSENTRY32> Factory () {
-		std::shared_ptr<PROCESSENTRY32> entry = std::make_shared<PROCESSENTRY32> ();
-		entry->dwSize = sizeof (PROCESSENTRY32);
+    return std::move (entry);
+  }
 
-		return std::move (entry);
-	}
+  inline static std::shared_ptr<Entry>
+  New(std::shared_ptr<PROCESSENTRY32> bEntry) {
+    return std::make_shared<Entry>(std::move(bEntry));
+  }
 
-	inline static std::shared_ptr<Entry> New (std::shared_ptr<PROCESSENTRY32> bEntry) {
-		return std::make_shared<Entry> (std::move (bEntry));
-	}
+  inline uint32_t pid() const override {
+    return pEntry->th32ProcessID;
+  }
 
-	inline uint32_t pid () const override {
-		return pEntry->th32ProcessID;
-	}
+  inline uint32_t parentPid() const {
+    return pEntry->th32ParentProcessID;
+  }
 
-	inline uint32_t parentPid () const {
-		return pEntry->th32ParentProcessID;
-	}
+  std::string name() const override {
+    return  ws2s(pEntry->szExeFile);
+  }
 
-	std::string name () const override {
-		return  ws2s (pEntry->szExeFile);
-	}
+  std::string path() const override {
+    std::string fullname;
 
-	std::string path () const override {
-		std::string fullname;
+    if (pProcess) {
+      fullname = pProcess->path();
+    }
 
-		if (pProcess) {
-			fullname = pProcess->path ();
-		}
+    return fullname;
+  }
 
-		return fullname;
-	}
+  std::string owner() const override {
+    std::string username;
 
-	std::string owner () const override {
-		std::string username;
+    if (pProcess) {
+      username = pProcess->owner();
+    }
 
-		if (pProcess) {
-			username = pProcess->owner();
-		}
+    return username;
+  }
 
-		return username;
-	}
+  inline uint32_t threads() const override {
+    return pEntry->cntThreads;
+  }
 
-	inline uint32_t threads() const override {
-		return pEntry->cntThreads;
-	}
+  inline int32_t priority() const override {
+    return pEntry->pcPriClassBase;
+  }
 
-	inline int32_t priority () const override {
-		return pEntry->pcPriClassBase;
-	}
+ private:
+  std::shared_ptr<PROCESSENTRY32> pEntry;
+  HandleProcess *pProcess;
 
-private:
-	std::shared_ptr<PROCESSENTRY32> pEntry;
-	HandleProcess *pProcess;
-
-	Entry () = delete;
-	Entry (const Entry&) = delete;
-	Entry& operator=(const Entry&) = delete;
+  Entry() = delete;
+  Entry(const Entry&) = delete;
+  Entry& operator=(const Entry&) = delete;
 };
 
 /* get process list */
 class Snapshot {
-public:
-	Snapshot () {
-		hProcessSnap = CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+ public:
+  Snapshot() {
+    hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-		if (hProcessSnap == INVALID_HANDLE_VALUE) {
-			throw std::bad_alloc ();
-		}
-	}
+    if (hProcessSnap == INVALID_HANDLE_VALUE) {
+      throw std::bad_alloc();
+    }
+  }
 
-	~Snapshot () {
-		if (hProcessSnap != INVALID_HANDLE_VALUE) {
-			CloseHandle (hProcessSnap);
-		}
-	}
+  ~Snapshot() {
+    if (hProcessSnap != INVALID_HANDLE_VALUE) {
+      CloseHandle(hProcessSnap);
+    }
+  }
 
-	void prepare () {
+  void prepare() {
+    // if this snapshot was already handled
+    if (scope.size() > 0) {
+      return;
+    }
 
-		// this snapshot was already handled
-		if (scope.size () > 0) {
-			return;
-		}
+    this->takeFirst();
 
-		this->takeFirst ();
+    while (this->takeNext()) { }
+  }
 
-		while (this->takeNext()) { }
-	}
+  inline pl::task::list_t list() const {
+    return scope;
+  }
 
-	inline pl::task::list_t list () const {
-		return scope;
-	}
+ private:
+  HANDLE hProcessSnap;
+  pl::task::list_t scope;
 
-private:
-	HANDLE hProcessSnap;
-	pl::task::list_t scope;
+  void takeFirst() {
+    std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory();
 
-	void takeFirst () {
-		std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory ();
+    if (!Process32First(hProcessSnap, pcEntry.get())) {
+      throw new std::logic_error("Process32First");
+    }
 
-		if (!Process32First (hProcessSnap, pcEntry.get ())) {
-			throw new std::logic_error ("Process32First");
-		}
+    std::shared_ptr<Entry> entry = Entry::New(std::move(pcEntry));
+    scope.push_back(std::move(entry));
+  }
 
-		std::shared_ptr<Entry> entry = Entry::New (std::move (pcEntry));
-		scope.push_back (std::move (entry));
-	}
+  bool takeNext() {
+    std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory();
 
-	bool takeNext () {
-		std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory ();
+    bool status = Process32Next(hProcessSnap, pcEntry.get());
 
-		bool status = Process32Next (hProcessSnap, pcEntry.get ());
+    if (status) {
+      std::shared_ptr<Entry> entry = Entry::New(std::move(pcEntry));
+      scope.push_back(std::move(entry));
+    }
 
-		if (status) {
-			std::shared_ptr<Entry> entry = Entry::New (std::move (pcEntry));
-			scope.push_back (std::move (entry));
-		}
-
-		return status;
-	}
+    return status;
+  }
 };
 
 namespace pl {
 namespace task {
 
-list_t list () {
-	std::shared_ptr<Snapshot> snap = std::make_shared<Snapshot> ();
-	snap->prepare ();
+list_t list() {
+  std::shared_ptr<Snapshot> snap = std::make_shared<Snapshot> ();
+  snap->prepare();
 
-	return snap->list ();
+  return snap->list ();
 }
 
 }
 
-}
+}  // namespace pl

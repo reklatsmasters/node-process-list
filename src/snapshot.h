@@ -1,8 +1,8 @@
-#ifndef PROCESS_LIST_H
-#define PROCESS_LIST_H
+#ifndef SRC_SNAPSHOT_H_
+#define SRC_SNAPSHOT_H_
 
 #include <nan.h>
 
 NAN_METHOD(snapshot);
 
-#endif
+#endif  // SRC_SNAPSHOT_H_
