@@ -40,7 +40,7 @@
     "standard": "*"
   },
   "dependencies": {
-    "nan": "^2.5.1",
+    "nan": "^2.6.1",
     "pify": "^2.3.0"
   },
   "gypfile": true
