@@ -294,7 +294,7 @@ class Task : public pl::Process {
   void readOvner() {
     struct stat sstat;
     struct passwd usrpwd, *usrpwd_ptr;
-    char usrpwd_buf[1024]
+    char usrpwd_buf[1024];
 
     int statok = stat(m_prefix.c_str(), &sstat);
 
