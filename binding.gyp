@@ -22,7 +22,7 @@
 						"DisableSpecificWarnings": [4100, 4127, 4201, 4244, 4267, 4506, 4611, 4714, 4800, 4005]
 					}
 				}
-			},{	# OS != win
+			}],["OS!='mac' and OS!='win'", {
 				"sources": [
 					"src/unix/tasklist.cpp"
 				],
@@ -32,18 +32,6 @@
 					"-std=c++0x",
 					"-frtti"
 				]
-			}],
-			["OS=='mac'", {
-				"xcode_settings": {
-					"GCC_ENABLE_CPP_RTTI": "YES",
-					"OTHER_CFLAGS": [
-						"-fexceptions",
-						"-std=c++11",
-						"-stdlib=libc++",
-						"-frtti",
-						"-mmacosx-version-min=10.7"
-			    	]
-				},
 			}]
 		]
 	},
