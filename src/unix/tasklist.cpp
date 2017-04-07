@@ -14,8 +14,9 @@
 #include <iomanip>
 #include <memory>
 #include <algorithm>
-#include <string>
+#include <cstring>
 #include <vector>
+#include <string>
 
 #ifndef MAX_READ
   #define MAX_READ 2048
