@@ -23,12 +23,12 @@ static inline bool is_pid(const char *data, size_t s) {
 
 template<class FilterPredicate>
 static std::vector<dirent> ls(const char *path, FilterPredicate filter) {
-  auto dir = opendir("/proc");
+  auto dir = opendir(path);
   struct dirent *entry;
   std::vector<dirent> dirlist;
 
   if (!dir) {
-    perror("can't read dir '/proc'");
+    perror("can't read dir");
     throw std::bad_alloc();
   }
 
