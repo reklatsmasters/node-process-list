@@ -8,24 +8,23 @@
 
 namespace pl {
 
-class Process {
- public:
-  ~Process() {}
+struct process {
+  uint32_t pid = 0;
+  uint32_t ppid = 0;
 
-  virtual std::string name() const = 0;
-  virtual uint32_t pid() const = 0;
-  virtual uint32_t parentPid() const = 0;
-  virtual std::string path() const = 0;
-  virtual uint32_t threads() const = 0;
-  virtual std::string owner() const = 0;
-  virtual int32_t priority() const = 0;
+  std::string path;
+  std::string name;
+  std::string cmdline;
+
+  std::string owner;
+
+  uint32_t threads = 0;
+  int32_t priority = 0;
 };
 
-namespace task {
-  typedef std::vector<std::shared_ptr<Process>> list_t;
+typedef std::vector<process> list_t;
 
-  list_t list();
-};  // task
+list_t list();
 
 };  // namespace pl
 

@@ -40,7 +40,7 @@ class SnapshotWorker : public Nan::AsyncWorker {
   ~SnapshotWorker() {}
 
   void Execute() {
-    tasks = pl::task::list();
+    tasks = pl::list();
   }
 
   void HandleOKCallback() {
@@ -52,33 +52,33 @@ class SnapshotWorker : public Nan::AsyncWorker {
       Local<Object> hash = Nan::New<Object>();
 
       if (psfields.name) {
-        Nan::Set(hash, STR("name"), STR(tasks.at(i)->name()));
+        Nan::Set(hash, STR("name"), STR(tasks.at(i).name));
       }
 
       if (psfields.pid) {
-        Nan::Set(hash, STR("pid"), Nan::New<Number>(tasks.at(i)->pid()));
+        Nan::Set(hash, STR("pid"), Nan::New<Number>(tasks.at(i).pid));
       }
 
       if (psfields.ppid) {
-        Nan::Set(hash, STR("ppid"), Nan::New<Number>(tasks.at(i)->parentPid()));
+        Nan::Set(hash, STR("ppid"), Nan::New<Number>(tasks.at(i).ppid));
       }
 
       if (psfields.path) {
-        Nan::Set(hash, STR("path"), STR(tasks.at(i)->path()));
+        Nan::Set(hash, STR("path"), STR(tasks.at(i).path));
       }
 
       if (psfields.threads) {
         Nan::Set(hash, STR("threads"),
-          Nan::New<Number>(tasks.at(i)->threads()));
+          Nan::New<Number>(tasks.at(i).threads));
       }
 
       if (psfields.owner) {
-        Nan::Set(hash, STR("owner"), STR(tasks.at(i)->owner()));
+        Nan::Set(hash, STR("owner"), STR(tasks.at(i).owner));
       }
 
       if (psfields.priority) {
         Nan::Set(hash, STR("priority"),
-          Nan::New<Number>(tasks.at(i)->priority()));
+          Nan::New<Number>(tasks.at(i).priority));
       }
 
       Nan::Set(jobs, i, hash);
@@ -103,7 +103,7 @@ class SnapshotWorker : public Nan::AsyncWorker {
   }
 
  private:
-  pl::task::list_t tasks;
+  pl::list_t tasks;
   ProcessFields psfields;
 };
 

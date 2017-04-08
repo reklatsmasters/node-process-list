@@ -1,39 +1,55 @@
 #include "tasklist.h"  // NOLINT(build/include)
 
-#include <stdint.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/types.h>  // ssize_t
-#include <unistd.h>  // read, basename
-#include <dirent.h>
 #include <sys/stat.h>
+#include <sys/types.h>  // ssize_t
+#include <dirent.h>
+#include <errno.h>
+#include <unistd.h>  // read, basename
+#include <fcntl.h>
 #include <pwd.h>
 #include <libgen.h>  // readlink
+#include <stdio.h>
 
-#include <iostream>
-#include <iomanip>
-#include <memory>
-#include <algorithm>
 #include <cstring>
-#include <vector>
+#include <algorithm>
 #include <string>
+#include <vector>
 
-#ifndef MAX_READ
-  #define MAX_READ 2048
-#endif
+using pl::process;
 
-// check if string is int
-bool is_pid(const std::string &data) {
-  if (data.empty()) {
-    return false;
-  }
-
-  return std::any_of (std::begin (data), std::end (data), [](const char &c) {
-    return std::isdigit(c);
-  });
+static inline bool is_pid(const char *data, size_t s) {
+  return std::all_of (data, data + s, ::isdigit);
 }
 
-// from htop @link( https://github.com/hishamhm/htop )
+template<class FilterPredicate>
+static std::vector<dirent> ls(const char *path, FilterPredicate filter) {
+  auto dir = opendir("/proc");
+  struct dirent *entry;
+  std::vector<dirent> dirlist;
+
+  if (!dir) {
+    perror("can't read dir '/proc'");
+    throw std::bad_alloc();
+  }
+
+  while ((entry = readdir(dir)) != NULL) {
+    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+      continue;
+    }
+
+    if (filter(entry)) {
+      dirlist.push_back(*entry);  // copy dirent
+    }
+  }
+
+  closedir(dir);
+  return dirlist;
+}
+
+/**
+ * from htop
+ * @link https://github.com/hishamhm/htop
+ */
 static ssize_t xread(int fd, void *buf, size_t count) {
   // Read some bytes. Retry on EINTR and when we don't get
   // as many bytes as we requested.
@@ -42,8 +58,9 @@ static ssize_t xread(int fd, void *buf, size_t count) {
   for (;;) {
     ssize_t res = read(fd, buf, count);
 
-    if (res == -1 && errno == EINTR)
+    if (res == -1 && errno == EINTR) {
       continue;
+    }
 
     if (res > 0) {
       buf = reinterpret_cast<char *>(buf) + res;
@@ -51,339 +68,127 @@ static ssize_t xread(int fd, void *buf, size_t count) {
       alreadyRead += res;
     }
 
-    if (res == -1)
-      return -1;
+    if (res == -1) {
+      alreadyRead = -1;
+      break;
+    }
 
-    if (count == 0 || res == 0)
-      return alreadyRead;
+    if (count == 0 || res == 0) {
+      break;
+    }
   }
+
+  return alreadyRead;
 }
 
-/**
- * data dir reader
- * ex: `/proc`
- */
-class Reader {
- public:
-  explicit Reader(const std::string& dirname) {
-    dir = opendir(dirname.c_str());
+static std::string cmdline(const char* pid) {
+  char path[32];
+  snprintf(path, sizeof(path), "/proc/%s/cmdline", pid);
 
-    if (!dir) {
-      throw std::bad_alloc();
-    }
+  int fd = open(path, O_RDONLY);
 
-    struct dirent* entry;
-
-    while ((entry = readdir(dir)) != NULL) {
-      char* name = &entry->d_name[0];
-      catalog.push_back(name);
-    }
+  if (fd == -1) {
+    throw std::runtime_error("can't open cmdline");
   }
 
-  static inline std::shared_ptr<Reader> New(const std::string& dirname) {
-    return std::make_shared<Reader>(dirname);
-  }
-
-  ~Reader() {
-    closedir(dir);
-  }
-
-  std::vector<std::string> list() {
-    return catalog;
-  }
-
- private:
-  DIR* dir;
-  std::vector<std::string> catalog;
-};
-
-class Task : public pl::Process {
- public:
-  explicit Task(const std::string &pid)
-    : m_prefix("/proc/" + pid), m_pid(std::strtoul(pid.c_str(), 0, 10)) {
-    m_ppid     = 0;
-    m_threads  = 0;
-    m_state    = 0;
-    m_pgrp     = 0;
-    m_priority = 0;
-    m_size     = 0;
-
-    readCmdline();
-    readStat();
-    readOvner();
-    normalizeProcess();
-  }
-
-  ~Task() {
-  }
-
-  inline std::string name() const override {
-    return m_name;
-  }
-
-  inline uint32_t pid() const override {
-    return m_pid;
-  }
-
-  inline uint32_t parentPid() const override {
-    return m_ppid;
-  }
-
-  inline std::string path() const override {
-    return m_path;
-  }
-
-  inline std::string cmdline() const {
-    return m_cmdline;
-  }
-
-  inline std::string owner() const override {
-    return m_owner;
-  }
-
-  inline uint32_t threads() const override {
-    return m_threads;
-  }
-
-  inline int32_t priority() const override {
-    return m_priority;
-  }
-
- private:
-  std::string m_prefix;  // path to the process in procfs
-
-  uint32_t m_pid;
-  uint32_t m_ppid;  // pid of the parent process
-  uint32_t m_threads;  // number of threads
-
-  std::string m_name;
-  std::string m_path;
-  std::string m_cmdline;
-
-  /**
-   * state (R is running, S is sleeping, D is sleeping in an
-   * uninterruptible wait, Z is zombie, T is traced or stopped)
-   */
-  char m_state;
-
-  uint32_t m_pgrp;  // pgrp of the process, to detect kernel thread
-  int32_t m_priority;  // priority level
-
-  size_t m_size;  // size of file, in bytes
-  std::string m_owner;
-
-
-  void readCmdline() {
-    int fd = open((m_prefix + "/cmdline").c_str(), O_RDONLY);
-
-    if (fd == -1) {
-      return;
-    }
-
-    char command[4096+1];
-    int amtRead = xread(fd, command, sizeof(command) - 1);
-
-    close(fd);
-
-    int tokenEnd = 0;
-    if (amtRead > 0) {
-      for (int i = 0; i < amtRead; i++)
-        if (command[i] == '\0' || command[i] == '\n') {
-          if (tokenEnd == 0) {
-             tokenEnd = i;
-          }
-
-          command[i] = ' ';
-        }
-    }
-
-    if (tokenEnd == 0) {
-      tokenEnd = amtRead;
-    }
-
-    command[amtRead] = '\0';
-
-    m_cmdline = std::string(command, amtRead);
-    m_path = std::string(command, tokenEnd);
-  }
-
-  void readStat() {
-    int fd = open((m_prefix + "/stat").c_str(), O_RDONLY);
-
-    if (fd == -1) { return; }
-
-    char buf[MAX_READ+1];
-    int size = xread(fd, buf, MAX_READ);
-
-    if (size <= 0) { return; }
-
-    buf[size] = '\0';
-    close(fd);
-
-    std::string buffer(buf, size);
-
-    char *location;
-
-    if (m_pid != std::strtoul(buffer.c_str(), &location, 10)) {
-      return;
-    }
-
-    location += 2;
-
-    char *end = strrchr(location, ')');
-    if (!end) { std::cerr << "error #2 "; return; }
-
-    m_name = std::string(location, end);
-    location = end + 2;
-
-    m_state = location[0];
-    location += 2;
-
-    m_ppid  = std::strtoul(location, &location, 10);
-    location += 1;
-
-    m_pgrp = std::strtoul(location, &location, 10);
-    location += 1;
-
-    // skip parameters
-    std::strtoul(location, &location, 10);
-    location += 1;
-
-    strtoul(location, &location, 10);
-    location += 1;
-
-    strtol(location, &location, 10);
-    location += 1;
-
-    strtoul(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    strtoull(location, &location, 10);
-    location += 1;
-
-    m_priority = strtol(location, &location, 10);
-    location += 1;
-
-    // skip nice level
-    strtol(location, &location, 10);
-    location += 1;
-
-    m_threads = strtol(location, &location, 10);
-  }
-
-  void readOvner() {
-    struct stat sstat;
-    struct passwd usrpwd, *usrpwd_ptr;
-    char usrpwd_buf[1024];
-
-    int statok = stat(m_prefix.c_str(), &sstat);
-
-    if (statok == -1) {
-      return;
-    }
-
-    m_size = sstat.st_size;
-
-    if (!getpwuid_r(sstat.st_uid, &usrpwd, usrpwd_buf, sizeof(usrpwd_buf),
-                    &usrpwd_ptr)) {
-      m_owner = std::string(usrpwd.pw_name);
+  const int MAX_READ = 4096;
+  char command[MAX_READ + 1];
+  int amtRead = xread(fd, command, MAX_READ);
+
+  close(fd);
+
+  if (amtRead > 0) {
+    for (int i = 0; i < amtRead; ++i) {
+      if (command[i] == '\0' || command[i] == '\n') {
+        command[i] = ' ';
+      }
     }
   }
 
-  void normalizeProcess() {
-    char path[4096+1];
+  return std::string(command, amtRead - 1);
+}
 
-    ssize_t size = readlink((m_prefix + "/exe").c_str(), path,
-                            sizeof(path) - 1);
+static std::string owner(const char *pid) {
+  struct stat sstat;
+  struct passwd usrpwd, *res;
+  char buf[1024];
+  int bufsize = sizeof(buf);
+  std::string username;
 
-    if (size == -1) {
-      return;
-    }
+  char path[32];
+  snprintf(path, sizeof(path), "/proc/%s", pid);
 
-    path[size] = '\0';
-    m_path = std::string(path, size);
-    m_name = std::string(basename(path));
-  }
-};
-
-/**
- * get process list
- */
-class Snapshot {
- public:
-  Snapshot() {
-    std::shared_ptr<Reader> reader = Reader::New("/proc");
-    std::vector<std::string> data = reader->list();
-
-    // filter data, get only process pid
-    std::copy_if(data.begin(), data.end(),
-                 std::back_inserter(m_pids), [](const std::string &pid) {
-      return is_pid(pid) && (pid != "0");
-    });
+  if (stat(path, &sstat) == -1) {
+    throw std::runtime_error("can't stat dir");
   }
 
-  inline static std::shared_ptr<Snapshot> New() {
-    auto snap = std::make_shared<Snapshot>();
-    snap->prepare();
+  getpwuid_r(sstat.st_uid, &usrpwd, buf, bufsize, &res);
 
-    return std::move(snap);
+  if (res != NULL) {
+    username = usrpwd.pw_name;
   }
 
-  /**
-   * construct <Task> from each found pid
-   */
-  void prepare() {
-    std::for_each(m_pids.begin(), m_pids.end(), [this](const std::string &pid) {
-      auto task = std::make_shared<Task>(pid);
-      m_scope.push_back(std::move(task));
-    });
+  return username;
+}
+
+static void procpath(const char *pid, process *proc) {
+  char syspath[32];
+  snprintf(syspath, sizeof(syspath), "/proc/%s/exe", pid);
+
+  char path[4096+1];
+  ssize_t size = readlink(syspath, path, sizeof(path) - 1);
+
+  if (size == -1) {
+    return;
   }
 
-  /**
-   * process count
-   */
-  inline size_t length() {
-    return m_pids.size ();
+  path[size] = '\0';
+
+  proc->path = std::string(path);
+  proc->name = std::string(basename(path));
+}
+
+static void pstat(const char *fpid, process *proc) {
+  char path[32];
+  snprintf(path, sizeof(path), "/proc/%s/stat", fpid);
+
+  auto fd = fopen(path, "r");
+
+  if (fd == NULL) {
+    throw std::runtime_error("can't open stat");
   }
 
-  inline pl::task::list_t tasks() const {
-    return m_scope;
+  int n = fscanf(fd, "%d %*s %*c %d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %d %*d %d",  // NOLINT(whitespace/line_length)
+                 &proc->pid, &proc->ppid, &proc->priority, &proc->threads);
+
+  if (n != 4) {
+    perror("can`t read fscanf");
   }
 
- private:
-  std::vector<std::string> m_pids;
-  pl::task::list_t m_scope;
-};
+  fclose(fd);
+}
 
 namespace pl {
-namespace task {
 
-list_t list() {
-  auto snapshot = Snapshot::New();
-  return snapshot->tasks();
-}
+  list_t list() {
+    list_t proclist;
 
-}
+    auto dirlist = ls("/proc", [](const struct dirent *entry) {
+      return is_pid(entry->d_name, strlen(entry->d_name));
+    });
 
+    for (auto entry : dirlist) {
+      struct process proc;
+
+      proc.cmdline = cmdline(entry.d_name);
+      proc.owner = owner(entry.d_name);
+
+      procpath(entry.d_name, &proc);
+      pstat(entry.d_name, &proc);
+
+      proclist.push_back(proc);
+    }
+
+    return proclist;
+  }
 }  // namespace pl
