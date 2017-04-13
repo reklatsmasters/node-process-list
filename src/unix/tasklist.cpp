@@ -170,7 +170,7 @@ static void pstat(const char *fpid, process *proc) {
 
 namespace pl {
 
-  list_t list() {
+  list_t list(const struct process_fields &requested_fields) {
     list_t proclist;
 
     auto dirlist = ls("/proc", [](const struct dirent *entry) {
@@ -181,10 +181,22 @@ namespace pl {
       struct process proc;
 
       proc.cmdline = cmdline(entry.d_name);
-      proc.owner = owner(entry.d_name);
 
-      procpath(entry.d_name, &proc);
-      pstat(entry.d_name, &proc);
+      if (requested_fields.owner) {
+        proc.owner = owner(entry.d_name);
+      }
+
+      if (requested_fields.path || requested_fields.name) {
+        procpath(entry.d_name, &proc);
+      }
+
+      if (
+        requested_fields.pid ||
+        requested_fields.ppid ||
+        requested_fields.threads ||
+        requested_fields.priority) {
+        pstat(entry.d_name, &proc);
+      }
 
       proclist.push_back(proc);
     }

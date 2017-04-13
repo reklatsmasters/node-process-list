@@ -301,7 +301,7 @@ static T wmicall(struct WMI *wmi,
 
 namespace pl {
 
-  list_t list() {
+  list_t list(const struct process_fields &requested_fields) {
     list_t proclist;
 
     LONG flagsOpen = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
@@ -311,17 +311,35 @@ namespace pl {
     while ((entry = wmiread(wmi)) != nullptr) {
       struct process proc;
 
-      proc.pid = wmiprop<uint32_t>(entry, L"ProcessId", 0);
-      proc.ppid = wmiprop<uint32_t>(entry, L"ParentProcessId", 0);
+      if (requested_fields.pid) {
+        proc.pid = wmiprop<uint32_t>(entry, L"ProcessId", 0);
+      }
 
-      proc.name = wmiprop<std::string>(entry, L"Name", "");
-      proc.path = wmiprop<std::string>(entry, L"ExecutablePath", "");
+      if (requested_fields.ppid) {
+        proc.ppid = wmiprop<uint32_t>(entry, L"ParentProcessId", 0);
+      }
+
+      if (requested_fields.name) {
+        proc.name = wmiprop<std::string>(entry, L"Name", "");
+      }
+
+      if (requested_fields.path) {
+        proc.path = wmiprop<std::string>(entry, L"ExecutablePath", "");
+      }
+
       proc.cmdline = wmiprop<std::string>(entry, L"CommandLine", "");
 
-      proc.threads = wmiprop<uint32_t>(entry, L"ThreadCount", 0);
-      proc.priority = wmiprop<uint32_t>(entry, L"Priority", 0);
+      if (requested_fields.threads) {
+        proc.threads = wmiprop<uint32_t>(entry, L"ThreadCount", 0);
+      }
 
-      proc.owner = wmicall<std::string>(wmi, entry, L"GetOwner", L"User", "");
+      if (requested_fields.priority) {
+        proc.priority = wmiprop<uint32_t>(entry, L"Priority", 0);
+      }
+
+      if (requested_fields.owner) {
+        proc.owner = wmicall<std::string>(wmi, entry, L"GetOwner", L"User", "");
+      }
 
       proclist.push_back(proc);
     }

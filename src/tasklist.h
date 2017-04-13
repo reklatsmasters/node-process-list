@@ -22,9 +22,21 @@ struct process {
   int32_t priority = 0;
 };
 
+struct process_fields {
+  bool pid;
+  bool ppid;
+
+  bool path;
+  bool name;
+  bool owner;
+
+  bool threads;
+  bool priority;
+};
+
 typedef std::vector<process> list_t;
 
-list_t list();
+list_t list(const struct process_fields &);
 
 };  // namespace pl
 

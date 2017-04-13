@@ -15,32 +15,23 @@ using v8::Array;
 using v8::Function;
 using v8::Local;
 using v8::Value;
+using pl::process_fields;
 
 #define STR(s) Nan::New<v8::String>(s).ToLocalChecked()
 
 #define PROP_BOOL(obj, prop) \
   Nan::To<bool>(Nan::Get(obj, STR(prop)).ToLocalChecked()).FromJust()
 
-struct ProcessFields {
-  bool pid;
-  bool ppid;
-  bool name;
-  bool path;
-  bool owner;
-  bool threads;
-  bool priority;
-};
-
 class SnapshotWorker : public Nan::AsyncWorker {
  public:
-  SnapshotWorker(Nan::Callback *callback, const struct ProcessFields &fields)
+  SnapshotWorker(Nan::Callback *callback, const struct process_fields &fields)
   : Nan::AsyncWorker(callback), psfields(fields) {
   }
 
   ~SnapshotWorker() {}
 
   void Execute() {
-    tasks = pl::list();
+    tasks = pl::list(psfields);
   }
 
   void HandleOKCallback() {
@@ -104,13 +95,13 @@ class SnapshotWorker : public Nan::AsyncWorker {
 
  private:
   pl::list_t tasks;
-  ProcessFields psfields;
+  process_fields psfields;
 };
 
 NAN_METHOD(snapshot) {
   auto arg0 = info[0].As<Object>();
 
-  ProcessFields fields = {
+  struct process_fields fields = {
     PROP_BOOL(arg0, "pid"),
     PROP_BOOL(arg0, "ppid"),
     PROP_BOOL(arg0, "name"),
