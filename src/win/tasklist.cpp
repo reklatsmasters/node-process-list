@@ -1,304 +1,332 @@
 #include "tasklist.h"  // NOLINT(build/include)
 
-#include <windows.h>
-#include <tlhelp32.h>
-#include <stdint.h>
+#define _WIN32_DCOM
 
-#include <memory>
-#include <sstream>
-#include <iomanip>
-#include <algorithm>
+#include <windows.h>
+#include <comdef.h>
+#include <Wbemidl.h>
+#include "OAIdl.h"
+#include <WbemCli.h>
+#include <tchar.h>
+
 #include <codecvt>
 #include <string>
+#include <iostream>
 
-#define MAX_NAME 256
+using pl::process;
 
-// std way to convert wstring to string
-std::string ws2s(const std::wstring& wstr) {
-    typedef std::codecvt_utf8<wchar_t> convert_typeX;
-    std::wstring_convert<convert_typeX, wchar_t> converterX;
+#pragma comment(lib, "wbemuuid.lib")
+#pragma comment(lib, "OleAut32.lib")
 
-    return converterX.to_bytes(wstr);
+struct WMI {
+  IWbemLocator *pLoc;
+  IWbemServices *pSvc;
+  IEnumWbemClassObject *pEnumerator;
+};
+
+struct wmient {
+  IWbemClassObject *pClsObj;
+  VARIANT *data;
+};
+
+// open wmi stream
+static WMI * wmiopen(const char *query, LONG flags) {
+  HRESULT hres;
+  WMI *wmi = (WMI *)malloc(sizeof(struct WMI));
+
+  if (wmi == NULL) {
+    throw std::logic_error("Failed to initialize strict WMI");
+  }
+
+  memset(wmi, 0, sizeof(struct WMI));
+
+  // Initialize COM.
+  hres =  CoInitializeEx(0, COINIT_MULTITHREADED);
+
+  if (FAILED(hres)) {
+    free(wmi);
+    throw std::logic_error("Failed to initialize COM library");
+  }
+
+  // Initialize
+  hres =  CoInitializeSecurity(
+    NULL,
+    -1,  // COM negotiates service
+    NULL,  // Authentication services
+    NULL,  // Reserved
+    RPC_C_AUTHN_LEVEL_DEFAULT,  // authentication
+    RPC_C_IMP_LEVEL_IMPERSONATE,  // Impersonation
+    NULL,  // Authentication info
+    EOAC_NONE,  // Additional capabilities
+    NULL);
+
+  if (FAILED(hres)) {
+    free(wmi);
+    CoUninitialize();
+    throw std::logic_error("Failed to initialize security.");
+  }
+
+  // Obtain the initial locator to Windows Management
+  // on a particular host computer.
+  hres = CoCreateInstance(
+    CLSID_WbemLocator,
+    0,
+    CLSCTX_INPROC_SERVER,
+    IID_IWbemLocator,
+    (LPVOID *) &wmi->pLoc);
+
+  if (FAILED(hres)) {
+    free(wmi);
+    CoUninitialize();
+    throw std::logic_error("Failed to create IWbemLocator object.");
+  }
+
+  // Connect to the root\cimv2 namespace with the
+  // current user and obtain pointer pSvc
+  // to make IWbemServices calls.
+  hres = wmi->pLoc->ConnectServer(
+    _bstr_t(L"ROOT\\CIMV2"),  // WMI namespace
+    NULL,                     // User name
+    NULL,                     // User password
+    0,                        // Locale
+    NULL,                     // Security flags
+    0,                        // Authority
+    0,                        // Context object
+    &wmi->pSvc);              // IWbemServices proxy
+
+  if (FAILED(hres)) {
+    wmi->pLoc->Release();
+    free(wmi);
+    CoUninitialize();
+    throw std::logic_error("Could not connect to root\\cimv2.");
+  }
+
+  // Set the IWbemServices proxy so that impersonation
+  // of the user (client) occurs.
+  hres = CoSetProxyBlanket(
+    wmi->pSvc,                    // the proxy to set
+    RPC_C_AUTHN_WINNT,            // authentication service
+    RPC_C_AUTHZ_NONE,             // authorization service
+    NULL,                         // Server principal name
+    RPC_C_AUTHN_LEVEL_CALL,       // authentication level
+    RPC_C_IMP_LEVEL_IMPERSONATE,  // impersonation level
+    NULL,                         // client identity
+    EOAC_NONE);                   // proxy capabilities
+
+  if (FAILED(hres)) {
+    wmi->pSvc->Release();
+    wmi->pLoc->Release();
+    free(wmi);
+    CoUninitialize();
+    throw std::logic_error("Could not set proxy blanket.");
+  }
+
+  // Use the IWbemServices pointer to make requests of WMI.
+  hres = wmi->pSvc->ExecQuery(
+    bstr_t("WQL"),
+    bstr_t(query),
+    flags,
+    NULL,
+    &wmi->pEnumerator);
+
+  if (FAILED(hres)) {
+    wmi->pSvc->Release();
+    wmi->pLoc->Release();
+    free(wmi);
+    CoUninitialize();
+    throw std::logic_error("Query for processes failed.");
+  }
+
+  return wmi;
 }
 
-class HandleProcess {
- public:
-  explicit HandleProcess(uint32_t pid) {
-    hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+// close wmi stream
+static void wmiclose(WMI *wmi) {
+  wmi->pEnumerator->Release();
+  wmi->pSvc->Release();
+  wmi->pLoc->Release();
 
-    if (!hProcess) {
-      throw std::bad_alloc();
-    }
+  free(wmi);
+  CoUninitialize();
+}
+
+static wmient* wmiread(WMI *wmi) {
+  if (!wmi) {
+    return nullptr;
   }
 
-  ~HandleProcess() {
-    if (hProcess) {
-      CloseHandle(hProcess);
-    }
+  if (!wmi->pEnumerator) {
+    return nullptr;
   }
 
-  // full image name of process
-  std::string path() const {
-    WCHAR *pProcessName = new WCHAR[MAX_PATH];
-    DWORD pProcessNameSize = MAX_PATH;
+  // define only on first call
+  static wmient *entry = nullptr;
 
-    BOOL iResult = QueryFullProcessImageName(hProcess, 0, pProcessName,
-                                             &pProcessNameSize);
-
-    if (!iResult) {
-      return std::string();
-    }
-
-    std::wstring name(pProcessName, pProcessNameSize);
-    delete[] pProcessName;
-
-    return ws2s(name);
+  // init struct
+  if (entry == nullptr) {
+    entry = (wmient *)malloc(sizeof(struct wmient));
+    memset(entry, 0, sizeof(struct wmient));
   }
 
-  // owner of the process
-  std::string owner() const {
-    HANDLE hToken = nullptr;
-    TOKEN_USER *pUserInfo = nullptr;
-    DWORD pTokenSize = 0;
-    SID_NAME_USE SidType;
+  ULONG ret = 0;
+  HRESULT hres = wmi->pEnumerator->Next(
+    WBEM_INFINITE,
+    1,
+    &entry->pClsObj,
+    &ret);
 
-    WCHAR *pUserName = new WCHAR[MAX_NAME];
-    DWORD pUserSize = MAX_NAME;
-
-    WCHAR *pDomainName = new WCHAR[MAX_NAME];
-    DWORD pDomainSize = MAX_NAME;
-
-    // open the processes token
-    if (!OpenProcessToken(hProcess, TOKEN_QUERY, &hToken)) {
-      delete[] pUserName;
-      delete[] pDomainName;
-
-      return std::string();
+  if (ret == 0) {
+    if (entry->pClsObj) {
+      entry->pClsObj->Release();
     }
 
-    // get the buffer size of the token
-    if (!GetTokenInformation(hToken, TokenUser, NULL, pTokenSize,
-                             &pTokenSize)) {
-      DWORD dwResult = GetLastError();
-
-      if (dwResult != ERROR_INSUFFICIENT_BUFFER) {
-        delete[] pUserName;
-        delete[] pDomainName;
-        CloseHandle(hToken);
-
-        return std::string();
-      }
+    if (entry->data) {
+      VariantClear(entry->data);
     }
 
-    if (!pTokenSize) {
-      delete[] pUserName;
-      delete[] pDomainName;
-      CloseHandle(hToken);
-
-      return std::string();
-    }
-
-    // Allocate the buffer of the token
-    pUserInfo = reinterpret_cast<TOKEN_USER*> (HeapAlloc(GetProcessHeap(),
-      HEAP_ZERO_MEMORY, pTokenSize));
-
-    if (!pUserInfo) {
-      delete[] pUserName;
-      delete[] pDomainName;
-      CloseHandle(hToken);
-
-      return std::string ();
-    }
-
-    // Call GetTokenInformation again to get the SID of the token
-    if (!GetTokenInformation(hToken, TokenUser, pUserInfo, pTokenSize,
-                             &pTokenSize)) {
-      HeapFree(GetProcessHeap(), 0, pUserInfo);
-      delete[] pUserName;
-      delete[] pDomainName;
-      CloseHandle(hToken);
-
-      return std::string ();
-    }
-
-    // get the account/domain name of the SID
-    if (!LookupAccountSid(NULL, pUserInfo->User.Sid, pUserName, &pUserSize,
-                          pDomainName, &pDomainSize, &SidType)) {
-      HeapFree(GetProcessHeap(), 0, pUserInfo);
-      delete[] pUserName;
-      delete[] pDomainName;
-      CloseHandle(hToken);
-
-      return std::string();
-    }
-
-    std::wstring username(pUserName, pUserSize);
-
-    HeapFree(GetProcessHeap(), 0, pUserInfo);
-    delete[] pUserName;
-    delete[] pDomainName;
-    CloseHandle(hToken);
-
-    return ws2s(username);
+    free(entry);
+    return nullptr;
   }
 
- private:
-  HANDLE hProcess;
-
-  HandleProcess() = delete;
-};
-
-/* process info */
-class Entry : public pl::Process {
- public:
-  explicit Entry(std::shared_ptr<PROCESSENTRY32> entry)
-    : pEntry(std::move(entry)) {
-    pProcess = nullptr;
-
-    try {
-      pProcess = new HandleProcess ( pid() );
-    } catch (const std::bad_alloc &) {
-    }
+  // clear prev call wmiprop()
+  // `data` can be equals 0, nullptr or valid data
+  if (entry->data) {
+    VariantClear(entry->data);
+    entry->data = nullptr;
   }
 
-  ~Entry() {
-    if (pProcess) {
-      delete pProcess;
-    }
+  return entry;
+}
+
+static std::string ws2s(const std::wstring& wstr) {
+  typedef std::codecvt_utf8<wchar_t> convert_typeX;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.to_bytes(wstr);
+}
+
+template<typename T>
+inline T getter(const VARIANT *) {
+  throw new std::logic_error("Specialization not found for this type");
+}
+
+template<>
+inline std::string getter(const VARIANT *prop) {
+  return ws2s(prop->bstrVal);
+}
+
+template<>
+inline BSTR getter(const VARIANT *prop) {
+  return prop->bstrVal;
+}
+
+template<>
+inline uint32_t getter(const VARIANT *prop) {
+  return prop->ulVal;
+}
+
+template <typename T>
+static T wmiprop(struct wmient *wmie, const wchar_t *prop, T defaultValue) {
+  if (!wmie->pClsObj) {
+    return defaultValue;
   }
 
-  static std::shared_ptr<PROCESSENTRY32> Factory() {
-    std::shared_ptr<PROCESSENTRY32> entry = std::make_shared<PROCESSENTRY32> ();
-    entry->dwSize = sizeof (PROCESSENTRY32);
-
-    return std::move (entry);
+  if (!wmie->data) {
+    wmie->data = (VARIANT *)malloc(sizeof(VARIANT));
   }
 
-  inline static std::shared_ptr<Entry>
-  New(std::shared_ptr<PROCESSENTRY32> bEntry) {
-    return std::make_shared<Entry>(std::move(bEntry));
+  HRESULT hres = wmie->pClsObj->Get(prop, 0, wmie->data, NULL, NULL);
+
+  if (FAILED(hres) || wmie->data->vt == VT_NULL) {
+    VariantClear(wmie->data);
+    free(wmie->data);
+    wmie->data = nullptr;
+
+    return defaultValue;
   }
 
-  inline uint32_t pid() const override {
-    return pEntry->th32ProcessID;
+  T val = getter<T>(wmie->data);
+
+  VariantClear(wmie->data);
+  free(wmie->data);
+  wmie->data = nullptr;
+
+  return val;
+}
+
+template <typename T>
+static T wmicall(struct WMI *wmi,
+                 struct wmient *wmientry,
+                 const wchar_t *methodName,
+                 const wchar_t *fieldName,
+                 T defaultValue) {
+  IWbemClassObject *pOutParams = NULL;
+  BSTR handlePath = wmiprop<BSTR>(wmientry, L"__Path", L"");
+
+  if (handlePath == L"") {
+    return defaultValue;
   }
 
-  inline uint32_t parentPid() const {
-    return pEntry->th32ParentProcessID;
+  HRESULT hres = wmi->pSvc->ExecMethod(
+      handlePath,
+      bstr_t(methodName),
+      0,
+      NULL,
+      NULL,
+      &pOutParams,
+      NULL);
+
+  if (FAILED(hres)) {
+    return defaultValue;
   }
 
-  std::string name() const override {
-    return  ws2s(pEntry->szExeFile);
+  VARIANT *varReturnValue = (VARIANT *)malloc(sizeof(VARIANT));
+  hres = pOutParams->Get(_bstr_t(fieldName), 0, varReturnValue, NULL, NULL);
+
+  if (FAILED(hres) || varReturnValue->vt == VT_NULL) {
+    pOutParams->Release();
+    VariantClear(varReturnValue);
+    free(varReturnValue);
+    return defaultValue;
   }
 
-  std::string path() const override {
-    std::string fullname;
+  T val = getter<T>(varReturnValue);
 
-    if (pProcess) {
-      fullname = pProcess->path();
-    }
+  pOutParams->Release();
+  VariantClear(varReturnValue);
+  free(varReturnValue);
 
-    return fullname;
-  }
-
-  std::string owner() const override {
-    std::string username;
-
-    if (pProcess) {
-      username = pProcess->owner();
-    }
-
-    return username;
-  }
-
-  inline uint32_t threads() const override {
-    return pEntry->cntThreads;
-  }
-
-  inline int32_t priority() const override {
-    return pEntry->pcPriClassBase;
-  }
-
- private:
-  std::shared_ptr<PROCESSENTRY32> pEntry;
-  HandleProcess *pProcess;
-
-  Entry() = delete;
-  Entry(const Entry&) = delete;
-  Entry& operator=(const Entry&) = delete;
-};
-
-/* get process list */
-class Snapshot {
- public:
-  Snapshot() {
-    hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-    if (hProcessSnap == INVALID_HANDLE_VALUE) {
-      throw std::bad_alloc();
-    }
-  }
-
-  ~Snapshot() {
-    if (hProcessSnap != INVALID_HANDLE_VALUE) {
-      CloseHandle(hProcessSnap);
-    }
-  }
-
-  void prepare() {
-    // if this snapshot was already handled
-    if (scope.size() > 0) {
-      return;
-    }
-
-    this->takeFirst();
-
-    while (this->takeNext()) { }
-  }
-
-  inline pl::task::list_t list() const {
-    return scope;
-  }
-
- private:
-  HANDLE hProcessSnap;
-  pl::task::list_t scope;
-
-  void takeFirst() {
-    std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory();
-
-    if (!Process32First(hProcessSnap, pcEntry.get())) {
-      throw new std::logic_error("Process32First");
-    }
-
-    std::shared_ptr<Entry> entry = Entry::New(std::move(pcEntry));
-    scope.push_back(std::move(entry));
-  }
-
-  bool takeNext() {
-    std::shared_ptr<PROCESSENTRY32> pcEntry = Entry::Factory();
-
-    bool status = Process32Next(hProcessSnap, pcEntry.get());
-
-    if (status) {
-      std::shared_ptr<Entry> entry = Entry::New(std::move(pcEntry));
-      scope.push_back(std::move(entry));
-    }
-
-    return status;
-  }
-};
+  return val;
+}
 
 namespace pl {
-namespace task {
 
-list_t list() {
-  std::shared_ptr<Snapshot> snap = std::make_shared<Snapshot> ();
-  snap->prepare();
+  list_t list() {
+    list_t proclist;
 
-  return snap->list ();
-}
+    LONG flagsOpen = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
+    struct WMI *wmi = wmiopen("SELECT * FROM Win32_Process", flagsOpen);
+    struct wmient *entry = nullptr;
 
-}
+    while ((entry = wmiread(wmi)) != nullptr) {
+      struct process proc;
 
+      proc.pid = wmiprop<uint32_t>(entry, L"ProcessId", 0);
+      proc.ppid = wmiprop<uint32_t>(entry, L"ParentProcessId", 0);
+
+      proc.name = wmiprop<std::string>(entry, L"Name", "");
+      proc.path = wmiprop<std::string>(entry, L"ExecutablePath", "");
+      proc.cmdline = wmiprop<std::string>(entry, L"CommandLine", "");
+
+      proc.threads = wmiprop<uint32_t>(entry, L"ThreadCount", 0);
+      proc.priority = wmiprop<uint32_t>(entry, L"Priority", 0);
+
+      proc.owner = wmicall<std::string>(wmi, entry, L"GetOwner", L"User", "");
+
+      proclist.push_back(proc);
+    }
+
+    wmiclose(wmi);
+    return proclist;
+  }
 }  // namespace pl
