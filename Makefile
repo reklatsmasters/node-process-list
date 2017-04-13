@@ -12,7 +12,7 @@ LINT_SOURCES = \
 
 .PHONY: lint
 
-FILTER = -legal/copyright
+FILTER = -legal/copyright,-readability/casting
 
 lint:
 	cd $(TOPLEVEL) && $(PYTHON) $(CPPLINT) --filter=$(FILTER) $(LINT_SOURCES)
