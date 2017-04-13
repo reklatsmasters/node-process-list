@@ -72,6 +72,10 @@ class SnapshotWorker : public Nan::AsyncWorker {
           Nan::New<Number>(tasks.at(i).priority));
       }
 
+      if (psfields.cmdline) {
+        Nan::Set(hash, STR("cmdline"), STR(tasks.at(i).cmdline));
+      }
+
       Nan::Set(jobs, i, hash);
     }
 
@@ -104,9 +108,10 @@ NAN_METHOD(snapshot) {
   struct process_fields fields = {
     PROP_BOOL(arg0, "pid"),
     PROP_BOOL(arg0, "ppid"),
-    PROP_BOOL(arg0, "name"),
     PROP_BOOL(arg0, "path"),
+    PROP_BOOL(arg0, "name"),
     PROP_BOOL(arg0, "owner"),
+    PROP_BOOL(arg0, "cmdline"),
     PROP_BOOL(arg0, "threads"),
     PROP_BOOL(arg0, "priority")
   };

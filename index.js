@@ -12,7 +12,8 @@ const allowedFields = Object.freeze([
   'path',
   'threads',
   'owner',
-  'priority'
+  'priority',
+  'cmdline'
 ])
 
 const defaultFields = {

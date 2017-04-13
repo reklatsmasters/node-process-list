@@ -29,6 +29,7 @@ struct process_fields {
   bool path;
   bool name;
   bool owner;
+  bool cmdline;
 
   bool threads;
   bool priority;

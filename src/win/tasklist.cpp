@@ -327,7 +327,9 @@ namespace pl {
         proc.path = wmiprop<std::string>(entry, L"ExecutablePath", "");
       }
 
-      proc.cmdline = wmiprop<std::string>(entry, L"CommandLine", "");
+      if (requested_fields.cmdline) {
+        proc.cmdline = wmiprop<std::string>(entry, L"CommandLine", "");
+      }
 
       if (requested_fields.threads) {
         proc.threads = wmiprop<uint32_t>(entry, L"ThreadCount", 0);

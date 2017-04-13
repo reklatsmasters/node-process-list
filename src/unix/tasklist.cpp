@@ -180,7 +180,9 @@ namespace pl {
     for (auto entry : dirlist) {
       struct process proc;
 
-      proc.cmdline = cmdline(entry.d_name);
+      if (requested_fields.cmdline) {
+        proc.cmdline = cmdline(entry.d_name);
+      }
 
       if (requested_fields.owner) {
         proc.owner = owner(entry.d_name);
