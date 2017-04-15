@@ -176,7 +176,7 @@ static int wmiread(WMI *wmi, WMIEntry *entry) {
     1,
     &entry->pClsObj,
     &ret);
-  
+
   if (ret == 0) {
     return -1;
   }
@@ -220,7 +220,7 @@ static T wmiprop(WMIEntry *entry, const wchar_t *prop, T defaultValue) {
 }
 
 template <typename T>
-static T wmicall(WMI *wmi, WMIEntry *entry, 
+static T wmicall(WMI *wmi, WMIEntry *entry,
                  const wchar_t *methodName,
                  const wchar_t *fieldName,
                  T defaultValue) {
@@ -244,7 +244,12 @@ static T wmicall(WMI *wmi, WMIEntry *entry,
     return defaultValue;
   }
 
-  hres = outParams.pClsObj->Get(_bstr_t(fieldName), 0, &outParams.data, NULL, NULL);
+  hres = outParams.pClsObj->Get(
+    _bstr_t(fieldName),
+    0,
+    &outParams.data,
+    NULL,
+    NULL);
 
   if (FAILED(hres) || outParams.data.vt == VT_NULL) {
     return defaultValue;
@@ -307,7 +312,12 @@ namespace pl {
       }
 
       if (requested_fields.owner) {
-        proc.owner = wmicall<std::string>(wmi, &entry, L"GetOwner", L"User", "");
+        proc.owner = wmicall<std::string>(
+          wmi,
+          &entry,
+          L"GetOwner",
+          L"User",
+          std::string());
       }
 
       proclist.push_back(proc);
