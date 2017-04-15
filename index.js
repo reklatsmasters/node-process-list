@@ -17,9 +17,14 @@ const allowedFields = Object.freeze([
 ])
 
 const defaultFields = {
-  pid: true,
   name: true,
-  path: true
+  pid: true,
+  ppid: true,
+  path: true,
+  threads: true,
+  owner: true,
+  priority: true,
+  cmdline: true
 }
 
 module.exports = {
