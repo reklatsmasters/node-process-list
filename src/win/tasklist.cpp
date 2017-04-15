@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2014 Dmitry Tsvettsikh <https://github.com/reklatsmasters>
+ *
+ * MIT License <https://github.com/reklatsmasters/node-process-list/blob/master/LICENSE>
+ */
+
 #include "tasklist.h"  // NOLINT(build/include)
 
 #define _WIN32_DCOM
