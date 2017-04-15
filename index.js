@@ -34,7 +34,7 @@ module.exports = {
 
 /**
  * get process list
- * @param {Object} opts
+ * @param {Object} args
  * @param {bool} opts.pid
  * @param {bool} opts.ppid
  * @param {bool} opts.name
@@ -42,6 +42,7 @@ module.exports = {
  * @param {bool} opts.owner
  * @param {bool} opts.threads
  * @param {bool} opts.priority
+ * @param {bool} opts.cmdline
  */
 function snapshot (args) {
   let opts = {}

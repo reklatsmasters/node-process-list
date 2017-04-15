@@ -2,7 +2,7 @@
 
 Cross-platform native method to receive the list of the launched processes.
 
-## Install
+### Install
 You need build tools for native module.
 
 1. Install Python 2.7
@@ -12,19 +12,25 @@ You need build tools for native module.
 
 ```bash
 npm i process-list
+# or
+yarn add process-list
 ```
+
+### Supported OS
+
+* `Windows` Windows 7+, Windows Server 2008 R2+
+* `Linux` any Linux-based distributives
+* `OS X` *Soon...*
 
 ### Usage
 ```js
 const { snapshot } = require("process-list");
 
-snapshot().then(tasks => console.log(tasks))
-// snapshot('pid', 'name', 'path')
+snapshot('pid', 'name').then(tasks => console.log(tasks))
 
 // output
 // [{
 //    name: "1.exe",
-// 	  path: "c:\\windows\\1.exe",
 //    pid: 1234,
 // }, ... ]
 ```
@@ -48,4 +54,4 @@ A list of allowed fields
 
 ## License
 
-MIT, 2014 (c) Dmitry Tsvettsikh
+MIT, Copyright (c) 2014 Dmitry Tsvettsikh
