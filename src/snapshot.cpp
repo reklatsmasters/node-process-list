@@ -31,7 +31,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
   ~SnapshotWorker() {}
 
   void Execute() {
-    tasks = pl::list(psfields);
+    try {
+      tasks = pl::list(psfields);
+    } catch(const std::exception &e) {
+      SetErrorMessage(e.what());
+    }
   }
 
   void HandleOKCallback() {
@@ -91,7 +95,7 @@ class SnapshotWorker : public Nan::AsyncWorker {
     Nan::HandleScope scope;
 
     Local<Value> argv[] = {
-      Nan::Error("internal error")
+      Nan::Error(ErrorMessage())
     };
 
     callback->Call(1, argv);
