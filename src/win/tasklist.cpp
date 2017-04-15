@@ -80,7 +80,7 @@ class CoInitializeHelper {
 // open wmi stream
 static WMI * wmiopen(const char *query, LONG flags) {
   HRESULT hres;
-  WMI *wmi = (WMI *)malloc(sizeof(struct WMI));
+  WMI *wmi = reinterpret_cast<WMI *>(malloc(sizeof(struct WMI)));
 
   if (wmi == NULL) {
     throw std::logic_error("Failed to initialize struct WMI");
@@ -95,7 +95,7 @@ static WMI * wmiopen(const char *query, LONG flags) {
     0,
     CLSCTX_INPROC_SERVER,
     IID_IWbemLocator,
-    (LPVOID *) &wmi->pLoc);
+    reinterpret_cast<LPVOID *>(&wmi->pLoc));
 
   if (FAILED(hres)) {
     free(wmi);

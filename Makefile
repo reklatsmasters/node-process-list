@@ -12,7 +12,5 @@ LINT_SOURCES = \
 
 .PHONY: lint
 
-FILTER = -readability/casting
-
 lint:
-	cd $(TOPLEVEL) && $(PYTHON) $(CPPLINT) --filter=$(FILTER) $(LINT_SOURCES)
+	cd $(TOPLEVEL) && $(PYTHON) $(CPPLINT) $(LINT_SOURCES)
