@@ -16,7 +16,22 @@
 using pl::process;
 
 #pragma comment(lib, "wbemuuid.lib")
-#pragma comment(lib, "OleAut32.lib")
+
+static std::string ws2s(const std::wstring& wstr) {
+  typedef std::codecvt_utf8<wchar_t> convert_typeX;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.to_bytes(wstr);
+}
+
+// The SafeRelease Pattern
+template <class T>
+void SafeRelease(T **ppT) {
+  if (*ppT) {
+    (*ppT)->Release();
+    *ppT = NULL;
+  }
+}
 
 struct WMI {
   IWbemLocator *pLoc;
@@ -24,9 +39,36 @@ struct WMI {
   IEnumWbemClassObject *pEnumerator;
 };
 
-struct wmient {
+struct WMIEntry {
+  WMIEntry() : pClsObj(NULL) {}
+
+  ~WMIEntry() {
+    VariantClear(&data);
+    SafeRelease(&pClsObj);
+  }
+
+  VARIANT data;
   IWbemClassObject *pClsObj;
-  VARIANT *data;
+};
+
+class CoInitializeHelper {
+ public:
+  CoInitializeHelper() :
+    m_hres(CoInitializeEx(NULL, COINIT_MULTITHREADED))
+    { }
+
+  ~CoInitializeHelper() {
+    if (SUCCEEDED(m_hres)) {
+      CoUninitialize();
+    }
+  }
+
+  operator HRESULT() const {
+    return m_hres;
+  }
+
+ private:
+  HRESULT m_hres;
 };
 
 // open wmi stream
@@ -35,36 +77,10 @@ static WMI * wmiopen(const char *query, LONG flags) {
   WMI *wmi = (WMI *)malloc(sizeof(struct WMI));
 
   if (wmi == NULL) {
-    throw std::logic_error("Failed to initialize strict WMI");
+    throw std::logic_error("Failed to initialize struct WMI");
   }
 
   memset(wmi, 0, sizeof(struct WMI));
-
-  // Initialize COM.
-  hres =  CoInitializeEx(0, COINIT_MULTITHREADED);
-
-  if (FAILED(hres)) {
-    free(wmi);
-    throw std::logic_error("Failed to initialize COM library");
-  }
-
-  // Initialize
-  hres =  CoInitializeSecurity(
-    NULL,
-    -1,  // COM negotiates service
-    NULL,  // Authentication services
-    NULL,  // Reserved
-    RPC_C_AUTHN_LEVEL_DEFAULT,  // authentication
-    RPC_C_IMP_LEVEL_IMPERSONATE,  // Impersonation
-    NULL,  // Authentication info
-    EOAC_NONE,  // Additional capabilities
-    NULL);
-
-  if (FAILED(hres)) {
-    free(wmi);
-    CoUninitialize();
-    throw std::logic_error("Failed to initialize security.");
-  }
 
   // Obtain the initial locator to Windows Management
   // on a particular host computer.
@@ -77,7 +93,6 @@ static WMI * wmiopen(const char *query, LONG flags) {
 
   if (FAILED(hres)) {
     free(wmi);
-    CoUninitialize();
     throw std::logic_error("Failed to create IWbemLocator object.");
   }
 
@@ -97,7 +112,6 @@ static WMI * wmiopen(const char *query, LONG flags) {
   if (FAILED(hres)) {
     wmi->pLoc->Release();
     free(wmi);
-    CoUninitialize();
     throw std::logic_error("Could not connect to root\\cimv2.");
   }
 
@@ -117,7 +131,6 @@ static WMI * wmiopen(const char *query, LONG flags) {
     wmi->pSvc->Release();
     wmi->pLoc->Release();
     free(wmi);
-    CoUninitialize();
     throw std::logic_error("Could not set proxy blanket.");
   }
 
@@ -133,7 +146,6 @@ static WMI * wmiopen(const char *query, LONG flags) {
     wmi->pSvc->Release();
     wmi->pLoc->Release();
     free(wmi);
-    CoUninitialize();
     throw std::logic_error("Query for processes failed.");
   }
 
@@ -147,25 +159,15 @@ static void wmiclose(WMI *wmi) {
   wmi->pLoc->Release();
 
   free(wmi);
-  CoUninitialize();
 }
 
-static wmient* wmiread(WMI *wmi) {
+static int wmiread(WMI *wmi, WMIEntry *entry) {
   if (!wmi) {
-    return nullptr;
+    return -1;
   }
 
   if (!wmi->pEnumerator) {
-    return nullptr;
-  }
-
-  // define only on first call
-  static wmient *entry = nullptr;
-
-  // init struct
-  if (entry == nullptr) {
-    entry = (wmient *)malloc(sizeof(struct wmient));
-    memset(entry, 0, sizeof(struct wmient));
+    return -1;
   }
 
   ULONG ret = 0;
@@ -174,35 +176,12 @@ static wmient* wmiread(WMI *wmi) {
     1,
     &entry->pClsObj,
     &ret);
-
+  
   if (ret == 0) {
-    if (entry->pClsObj) {
-      entry->pClsObj->Release();
-    }
-
-    if (entry->data) {
-      VariantClear(entry->data);
-    }
-
-    free(entry);
-    return nullptr;
+    return -1;
   }
 
-  // clear prev call wmiprop()
-  // `data` can be equals 0, nullptr or valid data
-  if (entry->data) {
-    VariantClear(entry->data);
-    entry->data = nullptr;
-  }
-
-  return entry;
-}
-
-static std::string ws2s(const std::wstring& wstr) {
-  typedef std::codecvt_utf8<wchar_t> convert_typeX;
-  std::wstring_convert<convert_typeX, wchar_t> converterX;
-
-  return converterX.to_bytes(wstr);
+  return 0;
 }
 
 template<typename T>
@@ -226,42 +205,27 @@ inline uint32_t getter(const VARIANT *prop) {
 }
 
 template <typename T>
-static T wmiprop(struct wmient *wmie, const wchar_t *prop, T defaultValue) {
-  if (!wmie->pClsObj) {
+static T wmiprop(WMIEntry *entry, const wchar_t *prop, T defaultValue) {
+  if (!entry->pClsObj) {
     return defaultValue;
   }
 
-  if (!wmie->data) {
-    wmie->data = (VARIANT *)malloc(sizeof(VARIANT));
-  }
+  HRESULT hres = entry->pClsObj->Get(prop, 0, &entry->data, NULL, NULL);
 
-  HRESULT hres = wmie->pClsObj->Get(prop, 0, wmie->data, NULL, NULL);
-
-  if (FAILED(hres) || wmie->data->vt == VT_NULL) {
-    VariantClear(wmie->data);
-    free(wmie->data);
-    wmie->data = nullptr;
-
+  if (FAILED(hres) || entry->data.vt == VT_NULL) {
     return defaultValue;
   }
 
-  T val = getter<T>(wmie->data);
-
-  VariantClear(wmie->data);
-  free(wmie->data);
-  wmie->data = nullptr;
-
-  return val;
+  return getter<T>(&entry->data);
 }
 
 template <typename T>
-static T wmicall(struct WMI *wmi,
-                 struct wmient *wmientry,
+static T wmicall(WMI *wmi, WMIEntry *entry, 
                  const wchar_t *methodName,
                  const wchar_t *fieldName,
                  T defaultValue) {
-  IWbemClassObject *pOutParams = NULL;
-  BSTR handlePath = wmiprop<BSTR>(wmientry, L"__Path", L"");
+  WMIEntry outParams;
+  BSTR handlePath = wmiprop<BSTR>(entry, L"__Path", L"");
 
   if (handlePath == L"") {
     return defaultValue;
@@ -273,74 +237,77 @@ static T wmicall(struct WMI *wmi,
       0,
       NULL,
       NULL,
-      &pOutParams,
+      &outParams.pClsObj,
       NULL);
 
   if (FAILED(hres)) {
     return defaultValue;
   }
 
-  VARIANT *varReturnValue = (VARIANT *)malloc(sizeof(VARIANT));
-  hres = pOutParams->Get(_bstr_t(fieldName), 0, varReturnValue, NULL, NULL);
+  hres = outParams.pClsObj->Get(_bstr_t(fieldName), 0, &outParams.data, NULL, NULL);
 
-  if (FAILED(hres) || varReturnValue->vt == VT_NULL) {
-    pOutParams->Release();
-    VariantClear(varReturnValue);
-    free(varReturnValue);
+  if (FAILED(hres) || outParams.data.vt == VT_NULL) {
     return defaultValue;
   }
 
-  T val = getter<T>(varReturnValue);
-
-  pOutParams->Release();
-  VariantClear(varReturnValue);
-  free(varReturnValue);
-
-  return val;
+  return getter<T>(&outParams.data);
 }
 
 namespace pl {
 
   list_t list(const struct process_fields &requested_fields) {
+    // Initialize COM.
+    CoInitializeHelper co;
+
+    if (FAILED(co)) {
+      throw std::logic_error("Failed to initialize COM library");
+    }
+
     list_t proclist;
-
     LONG flagsOpen = WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY;
-    struct WMI *wmi = wmiopen("SELECT * FROM Win32_Process", flagsOpen);
-    struct wmient *entry = nullptr;
 
-    while ((entry = wmiread(wmi)) != nullptr) {
+    struct WMI *wmi = wmiopen("SELECT * FROM Win32_Process", flagsOpen);
+
+    while (true) {
+      struct WMIEntry entry;
       struct process proc;
 
+      int ret = wmiread(wmi, &entry);
+
+      if (ret < 0) {
+        break;
+      }
+
       if (requested_fields.pid) {
-        proc.pid = wmiprop<uint32_t>(entry, L"ProcessId", 0);
+        proc.pid = wmiprop<uint32_t>(&entry, L"ProcessId", 0);
       }
 
       if (requested_fields.ppid) {
-        proc.ppid = wmiprop<uint32_t>(entry, L"ParentProcessId", 0);
+        proc.ppid = wmiprop<uint32_t>(&entry, L"ParentProcessId", 0);
       }
 
       if (requested_fields.name) {
-        proc.name = wmiprop<std::string>(entry, L"Name", "");
+        proc.name = wmiprop<std::string>(&entry, L"Name", "");
       }
 
       if (requested_fields.path) {
-        proc.path = wmiprop<std::string>(entry, L"ExecutablePath", "");
+        proc.path = wmiprop<std::string>(&entry, L"ExecutablePath", "");
       }
 
       if (requested_fields.cmdline) {
-        proc.cmdline = wmiprop<std::string>(entry, L"CommandLine", "");
+        proc.cmdline = wmiprop<std::string>(&entry, L"CommandLine", "");
       }
 
       if (requested_fields.threads) {
-        proc.threads = wmiprop<uint32_t>(entry, L"ThreadCount", 0);
+        proc.threads = wmiprop<uint32_t>(&entry, L"ThreadCount", 0);
       }
 
       if (requested_fields.priority) {
-        proc.priority = wmiprop<uint32_t>(entry, L"Priority", 0);
+        proc.priority = wmiprop<uint32_t>(&entry, L"Priority", 0);
       }
 
       if (requested_fields.owner) {
-        proc.owner = wmicall<std::string>(wmi, entry, L"GetOwner", L"User", "");
+        proc.owner = wmicall<std::string>(wmi, &entry, L"GetOwner", L"User", "");
       }
 
       proclist.push_back(proc);
