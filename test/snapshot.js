@@ -8,7 +8,7 @@ test('default', async t => {
 
   t.true(Array.isArray(tasks))
   t.not(tasks.length, 0)
-  t.deepEqual(Object.keys(tasks[0]), ['name', 'pid', 'path'])
+  t.deepEqual(Object.keys(tasks[0]), ps.allowedFields)
 })
 
 test('one field', async t => {
@@ -20,9 +20,9 @@ test('one field', async t => {
 })
 
 test('multiple fields', async t => {
-  const tasks = await ps.snapshot(ps.allowedFields)
+  const tasks = await ps.snapshot('pid', 'name')
 
   t.true(Array.isArray(tasks))
   t.not(tasks.length, 0)
-  t.deepEqual(Object.keys(tasks[0]), ps.allowedFields)
+  t.deepEqual(Object.keys(tasks[0]), ['name', 'pid'])
 })
