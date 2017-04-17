@@ -21,6 +21,7 @@ using v8::Array;
 using v8::Function;
 using v8::Local;
 using v8::Value;
+using v8::Date;
 using pl::process_fields;
 
 #define STR(s) Nan::New<v8::String>(s).ToLocalChecked()
@@ -86,6 +87,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
         Nan::Set(hash, STR("cmdline"), STR(tasks.at(i).cmdline));
       }
 
+      if (psfields.starttime) {
+        Nan::Set(hash, STR("starttime"),
+          Nan::New<Date>(tasks.at(i).starttime).ToLocalChecked());
+      }
+
       Nan::Set(jobs, i, hash);
     }
 
@@ -123,7 +129,8 @@ NAN_METHOD(snapshot) {
     PROP_BOOL(arg0, "owner"),
     PROP_BOOL(arg0, "cmdline"),
     PROP_BOOL(arg0, "threads"),
-    PROP_BOOL(arg0, "priority")
+    PROP_BOOL(arg0, "priority"),
+    PROP_BOOL(arg0, "starttime")
   };
 
   auto *callback = new Nan::Callback(info[1].As<Function>());

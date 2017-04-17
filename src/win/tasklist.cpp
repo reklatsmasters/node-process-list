@@ -14,6 +14,7 @@
 #include "OAIdl.h"
 #include <WbemCli.h>
 #include <tchar.h>
+#include <atlbase.h>
 
 #include <codecvt>
 #include <string>
@@ -22,6 +23,9 @@
 using pl::process;
 
 #pragma comment(lib, "wbemuuid.lib")
+
+#define EPOCH_SINCE_UNIX_NANO 116444736000000000
+#define SEC_TO_MS 10000
 
 static std::string ws2s(const std::wstring& wstr) {
   typedef std::codecvt_utf8<wchar_t> convert_typeX;
@@ -264,6 +268,59 @@ static T wmicall(WMI *wmi, WMIEntry *entry,
   return getter<T>(&outParams.data);
 }
 
+static uint64_t wmitime(WMIEntry *entry, const wchar_t *prop) {
+  if (!entry->pClsObj) {
+    return 0;
+  }
+
+  HRESULT hres = entry->pClsObj->Get(prop, 0, &entry->data, NULL, NULL);
+
+  if (FAILED(hres) || entry->data.vt == VT_NULL) {
+    return 0;
+  }
+
+  BSTR datetime = getter<BSTR>(&entry->data);
+  CComPtr<ISWbemDateTime> pSWbemDateTime;
+
+  // create SWbemDateTime instance
+  // @link https://msdn.microsoft.com/en-us/library/aa393687(v=vs.85).aspx
+  hres = CoCreateInstance(CLSID_SWbemDateTime, NULL, CLSCTX_INPROC_SERVER,
+    IID_PPV_ARGS(&pSWbemDateTime));
+
+  if (FAILED(hres)) {
+    return 0;
+  }
+
+  // set CIM_DATETIME
+  // @link https://msdn.microsoft.com/en-us/library/aa387237(v=vs.85).aspx
+  hres = pSWbemDateTime->put_Value(datetime);
+
+  if (FAILED(hres)) {
+    return 0;
+  }
+
+  // get as FILETIME
+  // @link https://msdn.microsoft.com/en-us/library/ms724284(v=vs.85).aspx
+  BSTR bstrFileTime;
+  hres = pSWbemDateTime->GetFileTime(VARIANT_TRUE, &bstrFileTime);
+
+  if (FAILED(hres)) {
+    return 0;
+  }
+
+  // convert FILETIME to Unix Time
+  ULARGE_INTEGER ulargeFileTime, unixEpoch;
+  ulargeFileTime.QuadPart = _wtoi64(bstrFileTime);
+
+  unixEpoch.QuadPart = EPOCH_SINCE_UNIX_NANO;
+  ulargeFileTime.QuadPart -= unixEpoch.QuadPart;
+
+  SysFreeString(bstrFileTime);
+  SysFreeString(datetime);
+
+  return ulargeFileTime.QuadPart / SEC_TO_MS;
+}
+
 namespace pl {
 
   list_t list(const struct process_fields &requested_fields) {
@@ -324,6 +381,10 @@ namespace pl {
           L"GetOwner",
           L"User",
           std::string());
+      }
+
+      if (requested_fields.starttime) {
+        proc.starttime = wmitime(&entry, L"CreationDate");
       }
 
       proclist.push_back(proc);

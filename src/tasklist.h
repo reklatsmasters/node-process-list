@@ -26,6 +26,8 @@ struct process {
 
   uint32_t threads = 0;
   int32_t priority = 0;
+
+  uint64_t starttime = 0;
 };
 
 struct process_fields {
@@ -39,6 +41,8 @@ struct process_fields {
 
   bool threads;
   bool priority;
+
+  bool starttime;
 };
 
 typedef std::vector<process> list_t;
