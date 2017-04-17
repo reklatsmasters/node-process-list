@@ -6,6 +6,7 @@
 
 #include "tasklist.h"  // NOLINT(build/include)
 
+#include <sys/sysinfo.h>
 #include <sys/stat.h>
 #include <sys/types.h>  // ssize_t
 #include <dirent.h>
@@ -20,6 +21,11 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <chrono>  // NOLINT(build/c++11)
+
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::system_clock;
 
 using pl::process;
 
@@ -154,7 +160,7 @@ static void procpath(const char *pid, process *proc) {
   proc->name = std::string(basename(path));
 }
 
-static void pstat(const char *fpid, process *proc) {
+static void procstat(const char *fpid, process *proc) {
   char path[32];
   snprintf(path, sizeof(path), "/proc/%s/stat", fpid);
 
@@ -164,12 +170,28 @@ static void pstat(const char *fpid, process *proc) {
     throw std::runtime_error("can't open stat");
   }
 
-  int n = fscanf(fd, "%d %*s %*c %d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %d %*d %d",  // NOLINT(whitespace/line_length)
-                 &proc->pid, &proc->ppid, &proc->priority, &proc->threads);
-
-  if (n != 4) {
-    perror("can`t read fscanf");
-  }
+  fscanf(fd, "%d", &proc->pid);     // (1)
+  fscanf(fd, "%*s");
+  fscanf(fd, "%*c");
+  fscanf(fd, "%d", &proc->ppid);    // (4)
+  fscanf(fd, "%*d");
+  fscanf(fd, "%*d");
+  fscanf(fd, "%*d");
+  fscanf(fd, "%*d");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*u");
+  fscanf(fd, "%*d");
+  fscanf(fd, "%*d");
+  fscanf(fd, "%d", &proc->priority);  // (18)
+  fscanf(fd, "%*d");
+  fscanf(fd, "%d", &proc->threads);
+  fscanf(fd, "%*d");
+  fscanf(fd, "%lu", &proc->starttime);
 
   fclose(fd);
 }
@@ -178,6 +200,10 @@ namespace pl {
 
   list_t list(const struct process_fields &requested_fields) {
     list_t proclist;
+    struct sysinfo sys_info;
+
+    int sys_ret = sysinfo(&sys_info);
+    uint64_t jiffies_per_second = sysconf(_SC_CLK_TCK);
 
     auto dirlist = ls("/proc", [](const struct dirent *entry) {
       return is_pid(entry->d_name, strlen(entry->d_name));
@@ -203,7 +229,19 @@ namespace pl {
         requested_fields.ppid ||
         requested_fields.threads ||
         requested_fields.priority) {
-        pstat(entry.d_name, &proc);
+        procstat(entry.d_name, &proc);
+      }
+
+      if (requested_fields.starttime) {
+        if (sys_ret != 0) {
+          proc.starttime = 0;
+        } else {
+          uint64_t now = duration_cast<milliseconds>(system_clock::now()
+            .time_since_epoch()).count();
+
+          auto start_since_boot = proc.starttime / jiffies_per_second;
+          proc.starttime = now - (sys_info.uptime - start_since_boot);
+        }
       }
 
       proclist.push_back(proc);
