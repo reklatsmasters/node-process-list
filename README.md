@@ -51,6 +51,7 @@ A list of allowed fields
 * `owner` - the owner of the process
 * `priority` - an os-specific process priority
 * `cmdline` - full command line of the process
+* `starttime` - the process start date / time
 
 ## License
 
