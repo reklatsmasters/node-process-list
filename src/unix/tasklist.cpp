@@ -9,6 +9,7 @@
 #include <sys/sysinfo.h>
 #include <sys/stat.h>
 #include <sys/types.h>  // ssize_t
+#include <sys/time.h>
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>  // read, basename
@@ -21,11 +22,6 @@
 #include <algorithm>
 #include <string>
 #include <vector>
-#include <chrono>  // NOLINT(build/c++11)
-
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::system_clock;
 
 using pl::process;
 
@@ -236,10 +232,12 @@ namespace pl {
         if (sys_ret != 0) {
           proc.starttime = 0;
         } else {
-          uint64_t now = duration_cast<milliseconds>(system_clock::now()
-            .time_since_epoch()).count();
+          struct timeval tv;
+          gettimeofday(&tv, NULL);
 
+          uint64_t now = tv.tv_sec * 1000L + tv.tv_usec / 1000L;
           auto start_since_boot = proc.starttime / jiffies_per_second;
+
           proc.starttime = now - (sys_info.uptime - start_since_boot);
         }
       }
