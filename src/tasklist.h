@@ -29,6 +29,7 @@ struct process {
 
   uint64_t starttime = 0;
   uint64_t vsize = 0;
+  uint64_t pmem = 0;
 };
 
 struct process_fields {
@@ -45,6 +46,7 @@ struct process_fields {
 
   bool starttime;
   bool vsize;
+  bool pmem;
 };
 
 typedef std::vector<process> list_t;

@@ -15,7 +15,8 @@ const allowedFields = Object.freeze([
   'priority',
   'cmdline',
   'starttime',
-  'vsize'
+  'vsize',
+  'pmem'
 ])
 
 const defaultFields = {
@@ -28,7 +29,8 @@ const defaultFields = {
   priority: true,
   cmdline: true,
   starttime: true,
-  vsize: true
+  vsize: true,
+  pmem: true
 }
 
 module.exports = {

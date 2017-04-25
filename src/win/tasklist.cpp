@@ -421,6 +421,10 @@ namespace pl {
         proc.vsize = wmiprop<uint32_t>(&entry, L"PageFileUsage", 0) * KBYTE;
       }
 
+      if (requested_fields.pmem) {
+        proc.pmem = _wtoi64(wmiprop<BSTR>(&entry, L"WorkingSetSize", 0));
+      }
+
       proclist.push_back(proc);
     }
 
