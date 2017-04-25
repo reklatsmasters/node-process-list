@@ -38,22 +38,22 @@ snapshot('pid', 'name').then(tasks => console.log(tasks))
 ### API
 
 ##### `snapshot(...field: String): Promise<[]Object>`
-Returns a list of runned processes.
+Returns the list of the launched processes.
 
 ##### `allowedFields: []String`
-A list of allowed fields
+List of allowed fields.
 
-* `pid` - process pid
-* `ppid` - parent process pid
-* `name` - process name (title)
-* `path` - full path to the process binary file
-* `threads` - threads per process
-* `owner` - the owner of the process
-* `priority` - an os-specific process priority
-* `cmdline` - full command line of the process
-* `starttime` - the process start date / time
-* `vmem` - virtual memory size in bytes used by process
-* `pmem` - physical memory size in bytes used by process
+* `pid: Number` - process pid
+* `ppid: Number` - parent process pid
+* `name: String` - process name (title)
+* `path: String` - full path to the process binary file
+* `threads: Number` - threads per process
+* `owner: String` - the owner of the process
+* `priority: Number` - an os-specific process priority
+* `cmdline: String` - full command line of the process
+* `starttime: Date` - the process start date / time
+* `vmem: String` - virtual memory size in bytes used by process
+* `pmem: String` - physical memory size in bytes used by process
 
 ## License
 
