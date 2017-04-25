@@ -28,7 +28,6 @@ struct process {
   int32_t priority = 0;
 
   uint64_t starttime = 0;
-  double cpu = 0;
 };
 
 struct process_fields {
@@ -44,7 +43,6 @@ struct process_fields {
   bool priority;
 
   bool starttime;
-  bool cpu;
 };
 
 typedef std::vector<process> list_t;
