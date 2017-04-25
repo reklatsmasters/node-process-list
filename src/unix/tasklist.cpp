@@ -252,9 +252,9 @@ static void procmem(const char *pid, process *proc) {
     throw std::runtime_error("can't open `/proc/$pid/statm`");
   }
 
-  fscanf(fd, "%lu %lu", &proc->vsize, &proc->pmem);
+  fscanf(fd, "%lu %lu", &proc->vmem, &proc->pmem);
 
-  proc->vsize *= page_size;
+  proc->vmem *= page_size;
   proc->pmem *= page_size;
 
   fclose(fd);
@@ -320,7 +320,7 @@ namespace pl {
         proc.starttime = now - (sys_info.uptime * 1000L - pstat.uptime * 1000L);
       }
 
-      if (requested_fields.vsize || requested_fields.pmem) {
+      if (requested_fields.vmem || requested_fields.pmem) {
         procmem(entry.d_name, &proc);
       }
 

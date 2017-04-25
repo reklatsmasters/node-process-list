@@ -15,7 +15,7 @@ const allowedFields = Object.freeze([
   'priority',
   'cmdline',
   'starttime',
-  'vsize',
+  'vmem',
   'pmem'
 ])
 
@@ -29,7 +29,7 @@ const defaultFields = {
   priority: true,
   cmdline: true,
   starttime: true,
-  vsize: true,
+  vmem: true,
   pmem: true
 }
 

@@ -52,7 +52,7 @@ A list of allowed fields
 * `priority` - an os-specific process priority
 * `cmdline` - full command line of the process
 * `starttime` - the process start date / time
-* `vsize` - virtual memory size in bytes
+* `vmem` - virtual memory size in bytes used by process
 * `pmem` - physical memory size in bytes used by process
 
 ## License

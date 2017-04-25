@@ -92,9 +92,9 @@ class SnapshotWorker : public Nan::AsyncWorker {
           Nan::New<Date>(tasks.at(i).starttime).ToLocalChecked());
       }
 
-      if (psfields.vsize) {
-        Nan::Set(hash, STR("vsize"),
-          Nan::New<Number>(tasks.at(i).vsize));
+      if (psfields.vmem) {
+        Nan::Set(hash, STR("vmem"),
+          Nan::New<Number>(tasks.at(i).vmem));
       }
 
       if (psfields.pmem) {
@@ -141,7 +141,7 @@ NAN_METHOD(snapshot) {
     PROP_BOOL(arg0, "threads"),
     PROP_BOOL(arg0, "priority"),
     PROP_BOOL(arg0, "starttime"),
-    PROP_BOOL(arg0, "vsize"),
+    PROP_BOOL(arg0, "vmem"),
     PROP_BOOL(arg0, "pmem")
   };
 

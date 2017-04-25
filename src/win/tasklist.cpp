@@ -417,8 +417,8 @@ namespace pl {
         proc.starttime = wmitime(&entry, L"CreationDate");
       }
 
-      if (requested_fields.vsize) {
-        proc.vsize = wmiprop<uint32_t>(&entry, L"PageFileUsage", 0) * KBYTE;
+      if (requested_fields.vmem) {
+        proc.vmem = wmiprop<uint32_t>(&entry, L"PageFileUsage", 0) * KBYTE;
       }
 
       if (requested_fields.pmem) {

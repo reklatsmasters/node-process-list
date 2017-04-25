@@ -28,7 +28,7 @@ struct process {
   int32_t priority = 0;
 
   uint64_t starttime = 0;
-  uint64_t vsize = 0;
+  uint64_t vmem = 0;
   uint64_t pmem = 0;
 };
 
@@ -45,7 +45,7 @@ struct process_fields {
   bool priority;
 
   bool starttime;
-  bool vsize;
+  bool vmem;
   bool pmem;
 };
 
