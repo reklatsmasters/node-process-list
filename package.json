@@ -17,19 +17,19 @@
   "engines": {
     "node": ">= 4"
   },
-  "files": [
-    "index.js",
-    "src",
-    "test",
-    "binding.gyp"
-  ],
   "keywords": [
     "tasklist",
     "process",
     "list",
     "task",
-    "runned",
-    "launched"
+    "taskmgr",
+    "proc",
+    "procfs",
+    "linux",
+    "windows",
+    "proclist",
+    "pm2",
+    "forever"
   ],
   "author": {
     "name": "Dmitry Tsvettsikh",
