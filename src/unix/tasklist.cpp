@@ -35,6 +35,11 @@ struct procstat_t {
   uint64_t uptime;
 };
 
+/**
+ * get memory page size in bytes
+ */
+static int page_size = sysconf(_SC_PAGE_SIZE);
+
 static int hertz = 0;
 
 /**
@@ -237,6 +242,23 @@ static void procstat(const char *fpid, procstat_t *pstat) {
   pstat->uptime = adjust_time(pstat->uptime);
 }
 
+static void procmem(const char *pid, process *proc) {
+  char path[32];
+  snprintf(path, sizeof(path), "/proc/%s/statm", pid);
+
+  auto fd = fopen(path, "r");
+
+  if (fd == NULL) {
+    throw std::runtime_error("can't open `/proc/$pid/statm`");
+  }
+
+  fscanf(fd, "%lu", &proc->vsize);
+
+  proc->vsize *= page_size;
+
+  fclose(fd);
+}
+
 namespace pl {
 
   /**
@@ -295,6 +317,10 @@ namespace pl {
 
       if (requested_fields.starttime) {
         proc.starttime = now - (sys_info.uptime * 1000L - pstat.uptime * 1000L);
+      }
+
+      if (requested_fields.vsize) {
+        procmem(entry.d_name, &proc);
       }
 
       proclist.push_back(proc);

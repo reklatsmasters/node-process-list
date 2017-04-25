@@ -28,6 +28,7 @@ struct process {
   int32_t priority = 0;
 
   uint64_t starttime = 0;
+  uint64_t vsize = 0;
 };
 
 struct process_fields {
@@ -43,6 +44,7 @@ struct process_fields {
   bool priority;
 
   bool starttime;
+  bool vsize;
 };
 
 typedef std::vector<process> list_t;

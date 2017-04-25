@@ -92,6 +92,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
           Nan::New<Date>(tasks.at(i).starttime).ToLocalChecked());
       }
 
+      if (psfields.vsize) {
+        Nan::Set(hash, STR("vsize"),
+          Nan::New<Number>(tasks.at(i).vsize));
+      }
+
       Nan::Set(jobs, i, hash);
     }
 
@@ -130,7 +135,8 @@ NAN_METHOD(snapshot) {
     PROP_BOOL(arg0, "cmdline"),
     PROP_BOOL(arg0, "threads"),
     PROP_BOOL(arg0, "priority"),
-    PROP_BOOL(arg0, "starttime")
+    PROP_BOOL(arg0, "starttime"),
+    PROP_BOOL(arg0, "vsize")
   };
 
   auto *callback = new Nan::Callback(info[1].As<Function>());

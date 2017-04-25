@@ -27,6 +27,8 @@ using pl::process;
 #define EPOCH_SINCE_UNIX_NANO 116444736000000000
 #define SEC_TO_MS 10000
 
+#define KBYTE 1024
+
 static std::string ws2s(const std::wstring& wstr) {
   typedef std::codecvt_utf8<wchar_t> convert_typeX;
   std::wstring_convert<convert_typeX, wchar_t> converterX;
@@ -413,6 +415,10 @@ namespace pl {
 
       if (requested_fields.starttime) {
         proc.starttime = wmitime(&entry, L"CreationDate");
+      }
+
+      if (requested_fields.vsize) {
+        proc.vsize = wmiprop<uint32_t>(&entry, L"PageFileUsage", 0) * KBYTE;
       }
 
       proclist.push_back(proc);
