@@ -81,7 +81,9 @@ class CoInitializeHelper {
   HRESULT m_hres;
 };
 
-// open wmi stream
+/**
+ * open wmi stream
+ */
 static WMI * wmiopen(const char *query, LONG flags) {
   HRESULT hres;
   WMI *wmi = reinterpret_cast<WMI *>(malloc(sizeof(struct WMI)));
@@ -162,7 +164,9 @@ static WMI * wmiopen(const char *query, LONG flags) {
   return wmi;
 }
 
-// close wmi stream
+/**
+ * close wmi stream
+ */
 static void wmiclose(WMI *wmi) {
   wmi->pEnumerator->Release();
   wmi->pSvc->Release();
@@ -171,6 +175,9 @@ static void wmiclose(WMI *wmi) {
   free(wmi);
 }
 
+/**
+ * read wmi entry
+ */
 static int wmiread(WMI *wmi, WMIEntry *entry) {
   if (!wmi) {
     return -1;
@@ -199,21 +206,33 @@ inline T getter(const VARIANT *) {
   throw new std::logic_error("Specialization not found for this type");
 }
 
+/**
+ * read `variant` as `std::string`
+ */
 template<>
 inline std::string getter(const VARIANT *prop) {
   return ws2s(prop->bstrVal);
 }
 
+/**
+ * read `variant` as `BSTR`
+ */
 template<>
 inline BSTR getter(const VARIANT *prop) {
   return prop->bstrVal;
 }
 
+/**
+ * read `variant` as `uint32_t`
+ */
 template<>
 inline uint32_t getter(const VARIANT *prop) {
   return prop->ulVal;
 }
 
+/**
+ * read property from wmi entry
+ */
 template <typename T>
 static T wmiprop(WMIEntry *entry, const wchar_t *prop, T defaultValue) {
   if (!entry->pClsObj) {
@@ -229,6 +248,9 @@ static T wmiprop(WMIEntry *entry, const wchar_t *prop, T defaultValue) {
   return getter<T>(&entry->data);
 }
 
+/**
+ * call wmi method
+ */
 template <typename T>
 static T wmicall(WMI *wmi, WMIEntry *entry,
                  const wchar_t *methodName,
@@ -268,6 +290,9 @@ static T wmicall(WMI *wmi, WMIEntry *entry,
   return getter<T>(&outParams.data);
 }
 
+/**
+ * special reader for `variant` `datetime` type
+ */
 static uint64_t wmitime(WMIEntry *entry, const wchar_t *prop) {
   if (!entry->pClsObj) {
     return 0;
@@ -323,6 +348,9 @@ static uint64_t wmitime(WMIEntry *entry, const wchar_t *prop) {
 
 namespace pl {
 
+  /**
+   * main function
+   */
   list_t list(const struct process_fields &requested_fields) {
     // Initialize COM.
     CoInitializeHelper co;
