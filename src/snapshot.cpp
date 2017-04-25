@@ -93,13 +93,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
       }
 
       if (psfields.vmem) {
-        Nan::Set(hash, STR("vmem"),
-          Nan::New<Number>(tasks.at(i).vmem));
+        Nan::Set(hash, STR("vmem"), STR(std::to_string(tasks.at(i).vmem)));
       }
 
       if (psfields.pmem) {
-        Nan::Set(hash, STR("pmem"),
-          Nan::New<Number>(tasks.at(i).pmem));
+        Nan::Set(hash, STR("pmem"), STR(std::to_string(tasks.at(i).pmem)));
       }
 
       Nan::Set(jobs, i, hash);
