@@ -327,7 +327,7 @@ static uint64_t wmitime(WMIEntry *entry, const wchar_t *prop) {
   // get as FILETIME
   // @link https://msdn.microsoft.com/en-us/library/ms724284(v=vs.85).aspx
   BSTR bstrFileTime;
-  hres = pSWbemDateTime->GetFileTime(VARIANT_TRUE, &bstrFileTime);
+  hres = pSWbemDateTime->GetFileTime(VARIANT_FALSE, &bstrFileTime);
 
   if (FAILED(hres)) {
     return 0;
