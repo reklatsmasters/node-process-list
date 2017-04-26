@@ -337,6 +337,14 @@ namespace pl {
         proc.cpu = (elapsed == 0) ? 0 : NORMAL(cpu, 0.0f, 100.0f);
       }
 
+      if (requested_fields.utime) {
+        proc.utime = pstat.utime * 1000;
+      }
+
+      if (requested_fields.stime) {
+        proc.stime = pstat.stime * 1000;
+      }
+
       proclist.push_back(proc);
     }
 

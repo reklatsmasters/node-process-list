@@ -17,7 +17,9 @@ const allowedFields = Object.freeze([
   'starttime',
   'vmem',
   'pmem',
-  'cpu'
+  'cpu',
+  'utime',
+  'stime'
 ])
 
 const defaultFields = {
@@ -32,7 +34,9 @@ const defaultFields = {
   starttime: true,
   vmem: true,
   pmem: true,
-  cpu: true
+  cpu: true,
+  utime: true,
+  stime: true
 }
 
 module.exports = {

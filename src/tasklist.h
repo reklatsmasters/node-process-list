@@ -34,6 +34,8 @@ struct process {
   uint64_t pmem = 0;
 
   double cpu = 0;
+  uint64_t utime = 0;
+  uint64_t stime = 0;
 };
 
 struct process_fields {
@@ -53,6 +55,8 @@ struct process_fields {
   bool pmem;
 
   bool cpu;
+  bool utime;
+  bool stime;
 };
 
 typedef std::vector<process> list_t;

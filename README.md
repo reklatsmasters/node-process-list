@@ -55,6 +55,8 @@ List of allowed fields.
 * `vmem: String` - virtual memory size in bytes used by process
 * `pmem: String` - physical memory size in bytes used by process
 * `cpu: Number` - cpu usage by process in percent
+* `utime: String` - amount of time in ms that this process has been scheduled in user mode
+* `stime: String` - amount of time that in ms this process has been scheduled in kernel mode
 
 ## License
 

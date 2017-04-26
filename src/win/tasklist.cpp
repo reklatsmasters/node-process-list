@@ -445,6 +445,14 @@ namespace pl {
         proc.cpu = NORMAL(cpu, 0.0f, 100.0f);
       }
 
+      if (requested_fields.utime) {
+        proc.utime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"UserModeTime", 0)));
+      }
+
+      if (requested_fields.stime) {
+        proc.stime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0)));
+      }
+
       proclist.push_back(proc);
     }
 
