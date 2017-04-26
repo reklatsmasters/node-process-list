@@ -433,16 +433,19 @@ namespace pl {
       }
 
       if (requested_fields.cpu) {
-        auto utime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"UserModeTime", 0)));
-        auto stime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0)));
+        auto utime = _wtoi64(wmiprop<BSTR>(&entry, L"UserModeTime", 0));
+        auto stime = _wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0));
+
+        utime = TO_MS(utime);
+        stime = TO_MS(stime);
 
         uint64_t starttime = requested_fields.starttime ?
           proc.starttime :
           wmitime(&entry, L"CreationDate");
         uint64_t now = std::time(nullptr) * 1000;
 
-        double cpu = ((double)(utime + stime) / (now - starttime)) * 100;
-        proc.cpu = NORMAL(cpu, 0.0f, 100.0f);
+        double cpu = static_cast<double>(utime + stime) / (now - starttime);
+        proc.cpu = NORMAL(cpu * 100, 0.0f, 100.0f);
       }
 
       if (requested_fields.utime) {
@@ -450,7 +453,8 @@ namespace pl {
       }
 
       if (requested_fields.stime) {
-        proc.stime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0)));
+        proc.stime = _wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0));
+        proc.stime = TO_MS(proc.stime);
       }
 
       proclist.push_back(proc);

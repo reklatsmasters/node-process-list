@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#define NORMAL(x,low,high) (((x)>(high))?(high):(((x)<(low))?(low):(x)))
+#define NORMAL(x, low, high) (((x) > (high))?(high):(((x) < (low))?(low):(x)))
 
 namespace pl {
 

@@ -332,9 +332,9 @@ namespace pl {
       // @link http://stackoverflow.com/a/16736599/1556249
       if (requested_fields.cpu) {
         uint64_t elapsed = sys_info.uptime - pstat.uptime;
-        double cpu = ((double)(pstat.utime + pstat.stime) / elapsed) * 100.0;
+        double cpu = static_cast<double>(pstat.utime + pstat.stime) / elapsed;
 
-        proc.cpu = (elapsed == 0) ? 0 : NORMAL(cpu, 0.0f, 100.0f);
+        proc.cpu = (elapsed == 0) ? 0 : NORMAL(cpu * 100, 0.0f, 100.0f);
       }
 
       if (requested_fields.utime) {
