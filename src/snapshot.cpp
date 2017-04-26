@@ -100,6 +100,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
         Nan::Set(hash, STR("pmem"), STR(std::to_string(tasks.at(i).pmem)));
       }
 
+      if (psfields.cpu) {
+        Nan::Set(hash, STR("cpu"),
+          Nan::New<Number>(tasks.at(i).cpu));
+      }
+
       Nan::Set(jobs, i, hash);
     }
 
@@ -140,7 +145,8 @@ NAN_METHOD(snapshot) {
     PROP_BOOL(arg0, "priority"),
     PROP_BOOL(arg0, "starttime"),
     PROP_BOOL(arg0, "vmem"),
-    PROP_BOOL(arg0, "pmem")
+    PROP_BOOL(arg0, "pmem"),
+    PROP_BOOL(arg0, "cpu")
   };
 
   auto *callback = new Nan::Callback(info[1].As<Function>());

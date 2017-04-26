@@ -33,6 +33,9 @@ struct procstat_t {
   uint32_t threads;
   int32_t  priority;
   uint64_t uptime;
+
+  uint64_t utime;
+  uint64_t stime;
 };
 
 /**
@@ -227,8 +230,8 @@ static void procstat(const char *fpid, procstat_t *pstat) {
   fscanf(fd, " %*u");
   fscanf(fd, " %*u");
   fscanf(fd, " %*u");
-  fscanf(fd, " %*u");
-  fscanf(fd, " %*u");
+  fscanf(fd, " %lu", &pstat->utime);  // (14)
+  fscanf(fd, " %lu", &pstat->stime);  // (15)
   fscanf(fd, " %*d");
   fscanf(fd, " %*d");
   fscanf(fd, " %d", &pstat->priority);  // (18)
@@ -240,6 +243,8 @@ static void procstat(const char *fpid, procstat_t *pstat) {
   fclose(fd);
 
   pstat->uptime = adjust_time(pstat->uptime);
+  pstat->utime = adjust_time(pstat->utime);
+  pstat->stime = adjust_time(pstat->stime);
 }
 
 static void procmem(const char *pid, process *proc) {
@@ -322,6 +327,14 @@ namespace pl {
 
       if (requested_fields.vmem || requested_fields.pmem) {
         procmem(entry.d_name, &proc);
+      }
+
+      // @link http://stackoverflow.com/a/16736599/1556249
+      if (requested_fields.cpu) {
+        uint64_t elapsed = sys_info.uptime - pstat.uptime;
+        double cpu = ((double)(pstat.utime + pstat.stime) / elapsed) * 100.0;
+
+        proc.cpu = (elapsed == 0) ? 0 : NORMAL(cpu, 0.0f, 100.0f);
       }
 
       proclist.push_back(proc);

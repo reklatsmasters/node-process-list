@@ -12,6 +12,8 @@
 #include <memory>
 #include <string>
 
+#define NORMAL(x,low,high) (((x)>(high))?(high):(((x)<(low))?(low):(x)))
+
 namespace pl {
 
 struct process {
@@ -30,6 +32,8 @@ struct process {
   uint64_t starttime = 0;
   uint64_t vmem = 0;
   uint64_t pmem = 0;
+
+  double cpu = 0;
 };
 
 struct process_fields {
@@ -47,6 +51,8 @@ struct process_fields {
   bool starttime;
   bool vmem;
   bool pmem;
+
+  bool cpu;
 };
 
 typedef std::vector<process> list_t;

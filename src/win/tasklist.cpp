@@ -19,6 +19,7 @@
 #include <codecvt>
 #include <string>
 #include <iostream>
+#include <ctime>
 
 using pl::process;
 
@@ -28,6 +29,12 @@ using pl::process;
 #define SEC_TO_MS 10000
 
 #define KBYTE 1024
+
+/**
+ * convert 100-nanosecond units to milliseconds
+ * @link https://msdn.microsoft.com/en-us/library/windows/desktop/dd979590(v=vs.85).aspx
+ */
+#define TO_MS(x) ((uint64_t)(x / SEC_TO_MS))
 
 static std::string ws2s(const std::wstring& wstr) {
   typedef std::codecvt_utf8<wchar_t> convert_typeX;
@@ -423,6 +430,19 @@ namespace pl {
 
       if (requested_fields.pmem) {
         proc.pmem = _wtoi64(wmiprop<BSTR>(&entry, L"WorkingSetSize", 0));
+      }
+
+      if (requested_fields.cpu) {
+        auto utime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"UserModeTime", 0)));
+        auto stime = TO_MS(_wtoi64(wmiprop<BSTR>(&entry, L"KernelModeTime", 0)));
+
+        uint64_t starttime = requested_fields.starttime ?
+          proc.starttime :
+          wmitime(&entry, L"CreationDate");
+        uint64_t now = std::time(nullptr) * 1000;
+
+        double cpu = ((double)(utime + stime) / (now - starttime)) * 100;
+        proc.cpu = NORMAL(cpu, 0.0f, 100.0f);
       }
 
       proclist.push_back(proc);

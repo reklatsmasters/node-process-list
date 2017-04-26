@@ -54,6 +54,7 @@ List of allowed fields.
 * `starttime: Date` - the process start date / time
 * `vmem: String` - virtual memory size in bytes used by process
 * `pmem: String` - physical memory size in bytes used by process
+* `cpu: Number` - cpu usage by process in percent
 
 ## License
 
