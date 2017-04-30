@@ -29,9 +29,6 @@ test_script:
   # run tests
   - npm test
 
-after_test:
-  - node example.js
-
 on_success:
   - for %%i in (prebuilds\*) do appveyor PushArtifact %%i
 
