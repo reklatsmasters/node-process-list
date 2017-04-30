@@ -34,4 +34,5 @@ on_success:
 
 # Don't actually build.
 build: off
+skip_tags: true
 version: "{build}"
