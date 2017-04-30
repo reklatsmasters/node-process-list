@@ -3,6 +3,7 @@
 environment:
   matrix:
     - nodejs_version: "4"
+    - nodejs_version: "5"
     - nodejs_version: "6"
     - nodejs_version: "7"
 
@@ -14,8 +15,10 @@ install:
   # Get the latest stable version of Node.js
   - ps: Install-Product node $env:nodejs_version $env:platform
   - npm i -g yarn
-  # install modules and build
-  - yarn
+  # install modules
+  - yarn install --ignore-scripts
+  # build
+  - prebuild --strip
 
 test_script:
   # Output useful info for debugging.
@@ -28,5 +31,9 @@ test_script:
 after_test:
   - node example.js
 
+on_success:
+  - for %%i in (prebuilds\*) do appveyor PushArtifact %%i
+
 # Don't actually build.
 build: off
+version: "{build}"

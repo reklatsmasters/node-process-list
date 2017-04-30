@@ -4,7 +4,8 @@
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
   "scripts": {
-    "test": "standard && ava test/*.js"
+    "test": "standard && ava test/*.js && prebuild-ci",
+    "install": "prebuild-install -p ./lib || node-gyp rebuild"
   },
   "repository": {
     "type": "git",
@@ -37,11 +38,14 @@
   },
   "devDependencies": {
     "ava": "^0.18.2",
+    "prebuild": "^6.1.0",
+    "prebuild-ci": "^2.2.2",
     "standard": "*"
   },
   "dependencies": {
     "nan": "^2.6.1",
-    "pify": "^2.3.0"
+    "pify": "^2.3.0",
+    "prebuild-install": "^2.1.2"
   },
   "gypfile": true
 }

@@ -2,8 +2,10 @@ sudo: false
 language: node_js
 node_js:
   - "4"
+  - "5"
   - "6"
-  - "node"
+  - "7"
+
 addons:
   apt:
     sources:
@@ -12,3 +14,9 @@ addons:
       - g++-4.8
 env:
   - CXX=g++-4.8
+
+install:
+  # install modules
+  - yarn install --ignore-scripts
+  # build
+  - prebuild --strip
