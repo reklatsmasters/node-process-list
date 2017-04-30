@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "standard && ava test/*.js && prebuild-ci",
-    "install": "prebuild-install -p ./lib || node-gyp rebuild"
+    "install": "prebuild-install || node-gyp rebuild"
   },
   "repository": {
     "type": "git",
@@ -43,6 +43,7 @@
     "standard": "*"
   },
   "dependencies": {
+    "bindings": "^1.2.1",
     "nan": "^2.6.1",
     "pify": "^2.3.0",
     "prebuild-install": "^2.1.2"

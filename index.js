@@ -1,6 +1,6 @@
 'use strict'
 
-const ps = require('./lib/processlist')
+const ps = require('bindings')('processlist')
 const then = require('pify')
 
 const es6snapshot = then(ps.snapshot)

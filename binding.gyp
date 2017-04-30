@@ -34,15 +34,5 @@
 				]
 			}]
 		]
-	},
-
-	{
-		"target_name":"action_after_build",
-		"type": "none",
-		"dependencies": [ "processlist" ],
-		"copies": [{
-			"files": [ "<(PRODUCT_DIR)/processlist.node" ],
-			"destination": "./lib/"
-		}]
 	}]
 }
