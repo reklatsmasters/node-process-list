@@ -3,18 +3,14 @@
 Cross-platform native method to receive the list of the launched processes.
 
 ### Install
-You need build tools for native module.
-
-1. Install Python 2.7
-2. _Windows_: Install MSVC 2013 or newer
-3. _Unix_: install GCC to 4.8 or newer
-4. install node build tool `npm i -g node-gyp` See [node-gyp](https://npmjs.org/package/node-gyp) for more details.
 
 ```bash
 npm i process-list
 # or
 yarn add process-list
 ```
+
+It's that easy! npm will download one of the [prebuilt](https://github.com/reklatsmasters/node-process-list/releases/latest) binaries for your OS. If you need to build `process-list`, see [node-gyp](https://npmjs.org/package/node-gyp) for more details.
 
 ### Supported OS
 
