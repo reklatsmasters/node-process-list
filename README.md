@@ -7,6 +7,8 @@
 
 ### Install
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/reklatsmasters/node-process-list.svg)](https://greenkeeper.io/)
+
 ```bash
 npm i process-list
 # or
