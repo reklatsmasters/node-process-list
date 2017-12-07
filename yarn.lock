@@ -235,7 +235,7 @@ ava-init@^0.2.0:
     read-pkg-up "^2.0.0"
     write-pkg "^2.0.0"
 
-ava@0.23.0:
+ava@^0.23.0:
   version "0.23.0"
   resolved "https://registry.yarnpkg.com/ava/-/ava-0.23.0.tgz#beed11730adef74a857761b62b8882bf16d5a038"
   dependencies:
@@ -2947,9 +2947,9 @@ prebuild-install@^2.1.2:
     tunnel-agent "^0.4.3"
     xtend "4.0.1"
 
-prebuild@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/prebuild/-/prebuild-6.1.0.tgz#2a5ba53133cfd41c08538eb8608ad9d625d41daa"
+prebuild@7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/prebuild/-/prebuild-7.0.0.tgz#e7fa64a4b404d3de2b0a876bb5c801c1c75b2781"
   dependencies:
     async "^2.1.4"
     execspawn "^1.0.1"
@@ -2962,6 +2962,7 @@ prebuild@^6.1.0:
     node-ninja "^1.0.1"
     noop-logger "^0.1.0"
     npmlog "^4.0.1"
+    osenv "^0.1.4"
     rc "^1.0.3"
     tar-stream "^1.2.1"
     xtend "^4.0.1"
