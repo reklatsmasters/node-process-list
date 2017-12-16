@@ -1,6 +1,6 @@
 {
   "name": "process-list",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Cross-platform method to receive the list of the launched processes",
   "main": "index.js",
   "scripts": {
