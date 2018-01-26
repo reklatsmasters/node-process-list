@@ -37,7 +37,7 @@
     "email": "me@reklatsmasters.com"
   },
   "devDependencies": {
-    "ava": "^0.24.0",
+    "ava": "^0.25.0",
     "prebuild": "^6.2.2",
     "prebuild-ci": "^2.2.3",
     "standard": "*"
