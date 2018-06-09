@@ -62,11 +62,9 @@ struct WMIEntry {
   WMIEntry() : pClsObj(NULL) {}
 
   ~WMIEntry() {
-    VariantClear(&data);
     SafeRelease(&pClsObj);
   }
 
-  VARIANT data;
   IWbemClassObject *pClsObj;
 };
 
@@ -121,7 +119,7 @@ static WMI * wmiopen(const char *query, LONG flags) {
   // current user and obtain pointer pSvc
   // to make IWbemServices calls.
   hres = wmi->pLoc->ConnectServer(
-    _bstr_t(L"ROOT\\CIMV2"),  // WMI namespace
+    bstr_t(L"ROOT\\CIMV2"),   // WMI namespace
     NULL,                     // User name
     NULL,                     // User password
     0,                        // Locale
@@ -248,13 +246,16 @@ static T wmiprop(WMIEntry *entry, const wchar_t *prop, T defaultValue) {
     return defaultValue;
   }
 
-  HRESULT hres = entry->pClsObj->Get(prop, 0, &entry->data, NULL, NULL);
+  VARIANT vtProp;
+  HRESULT hres = entry->pClsObj->Get(prop, 0, &vtProp, NULL, NULL);
 
-  if (FAILED(hres) || entry->data.vt == VT_NULL) {
+  if (FAILED(hres)) {
     return defaultValue;
   }
 
-  return getter<T>(&entry->data);
+  T res = (vtProp.vt != VT_NULL) ? getter<T>(&vtProp) : defaultValue;
+  VariantClear(&vtProp);
+  return res;
 }
 
 /**
@@ -285,18 +286,21 @@ static T wmicall(WMI *wmi, WMIEntry *entry,
     return defaultValue;
   }
 
+  VARIANT vtProp;
   hres = outParams.pClsObj->Get(
     _bstr_t(fieldName),
     0,
-    &outParams.data,
+    &vtProp,
     NULL,
     NULL);
 
-  if (FAILED(hres) || outParams.data.vt == VT_NULL) {
+  if (FAILED(hres)) {
     return defaultValue;
   }
 
-  return getter<T>(&outParams.data);
+  T res = (vtProp.vt != VT_NULL) ? getter<T>(&vtProp) : defaultValue;
+  VariantClear(&vtProp);
+  return res;
 }
 
 /**
@@ -307,13 +311,21 @@ static uint64_t wmitime(WMIEntry *entry, const wchar_t *prop) {
     return 0;
   }
 
-  HRESULT hres = entry->pClsObj->Get(prop, 0, &entry->data, NULL, NULL);
+  VARIANT vtProp;
+  HRESULT hres = entry->pClsObj->Get(prop, 0, &vtProp, NULL, NULL);
 
-  if (FAILED(hres) || entry->data.vt == VT_NULL) {
+  if (FAILED(hres)) {
     return 0;
   }
 
-  BSTR datetime = getter<BSTR>(&entry->data);
+  if (vtProp.vt == VT_NULL) {
+    VariantClear(&vtProp);
+    return 0;
+  }
+
+  BSTR datetime = getter<BSTR>(&vtProp);
+  VariantClear(&vtProp);
+
   CComPtr<ISWbemDateTime> pSWbemDateTime;
 
   // create SWbemDateTime instance
