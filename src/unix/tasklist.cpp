@@ -97,34 +97,19 @@ static std::vector<dirent> ls(const char *path, FilterPredicate filter) {
  * @link https://github.com/hishamhm/htop
  */
 static ssize_t xread(int fd, void *buf, size_t count) {
-  // Read some bytes. Retry on EINTR and when we don't get
-  // as many bytes as we requested.
+  // Read some bytes. Retry on EINTR and when we don't get as many bytes as we requested.
   size_t alreadyRead = 0;
-
-  for (;;) {
+  for(;;) {
     ssize_t res = read(fd, buf, count);
-
-    if (res == -1 && errno == EINTR) {
-      continue;
-    }
-
+     if (res == -1 && errno == EINTR) continue;
     if (res > 0) {
-      buf = reinterpret_cast<char *>(buf) + res;
+       buf = ((char*)buf)+res;
       count -= res;
       alreadyRead += res;
     }
-
-    if (res == -1) {
-      alreadyRead = -1;
-      break;
-    }
-
-    if (count == 0 || res == 0) {
-      break;
-    }
+     if (res == -1) return -1;
+     if (count == 0 || res == 0) return alreadyRead;
   }
-
-  return alreadyRead;
 }
 
 /**
@@ -137,7 +122,7 @@ static std::string cmdline(const char* pid) {
   int fd = open(path, O_RDONLY);
 
   if (fd == -1) {
-    throw std::runtime_error("can't open cmdline");
+    return "";
   }
 
   const int MAX_READ = 4096;
@@ -152,6 +137,10 @@ static std::string cmdline(const char* pid) {
         command[i] = ' ';
       }
     }
+  } else {
+    // This is probably kernel thread.
+    // @link https://github.com/hishamhm/htop/blob/47cf1532b0c9fbc70bada5022a7db07d3cc4811a/linux/LinuxProcessList.c#L692
+    return "";
   }
 
   return std::string(command, amtRead - 1);
