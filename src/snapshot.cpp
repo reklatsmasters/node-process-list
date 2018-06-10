@@ -121,7 +121,7 @@ class SnapshotWorker : public Nan::AsyncWorker {
       jobs
     };
 
-    callback->Call(2, argv);
+    callback->Call(2, argv, async_resource);
   }
 
   void HandleErrorCallback() {
@@ -131,7 +131,7 @@ class SnapshotWorker : public Nan::AsyncWorker {
       Nan::Error(ErrorMessage())
     };
 
-    callback->Call(1, argv);
+    callback->Call(1, argv, async_resource);
   }
 
  private:
