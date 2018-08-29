@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "ava": "^0.25.0",
-    "prebuild": "^7.6.0",
+    "prebuild": "^8.0.0",
     "prebuild-ci": "^2.2.3",
     "standard": "*"
   },
