@@ -26,6 +26,7 @@ struct process {
 
   std::string owner;
 
+  uint32_t handlecount = 0;
   uint32_t threads = 0;
   int32_t priority = 0;
 
@@ -47,6 +48,7 @@ struct process_fields {
   bool owner;
   bool cmdline;
 
+  bool handlecount;
   bool threads;
   bool priority;
 

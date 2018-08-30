@@ -69,6 +69,11 @@ class SnapshotWorker : public Nan::AsyncWorker {
         Nan::Set(hash, STR("path"), STR(tasks.at(i).path));
       }
 
+      if (psfields.handlecount) {
+        Nan::Set(hash, STR("handlecount"),
+          Nan::New<Number>(tasks.at(i).handlecount));
+      }
+
       if (psfields.threads) {
         Nan::Set(hash, STR("threads"),
           Nan::New<Number>(tasks.at(i).threads));
@@ -149,6 +154,7 @@ NAN_METHOD(snapshot) {
     PROP_BOOL(arg0, "name"),
     PROP_BOOL(arg0, "owner"),
     PROP_BOOL(arg0, "cmdline"),
+    PROP_BOOL(arg0, "handlecount"),
     PROP_BOOL(arg0, "threads"),
     PROP_BOOL(arg0, "priority"),
     PROP_BOOL(arg0, "starttime"),

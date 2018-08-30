@@ -415,6 +415,10 @@ namespace pl {
         proc.cmdline = wmiprop<std::string>(&entry, L"CommandLine", "");
       }
 
+      if (requested_fields.handlecount) {
+        proc.handlecount = wmiprop<uint32_t>(&entry, L"HandleCount", 0);
+      }
+
       if (requested_fields.threads) {
         proc.threads = wmiprop<uint32_t>(&entry, L"ThreadCount", 0);
       }
