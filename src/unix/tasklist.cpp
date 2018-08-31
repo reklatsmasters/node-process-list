@@ -173,6 +173,25 @@ static std::string owner(const char *pid) {
 }
 
 /**
+ * retrieve process handle (fd) count
+ */
+static uint32_t handlecount(const char *pid) {
+    uint32_t fd_count;
+    struct dirent *dp;
+    char path[64];
+    snprintf(path, sizeof(path), "/proc/%s/fd", pid);
+
+    fd_count = 0;
+    DIR *dir = opendir(path);
+    while ((dp = readdir(dir)) != NULL) {
+        fd_count++;
+    }
+    closedir(dir);
+
+    return fd_count;
+}
+
+/**
  * read absolute path to the process
  * and process executable file name
  */
@@ -300,6 +319,10 @@ namespace pl {
 
       if (requested_fields.ppid) {
         proc.ppid = pstat.ppid;
+      }
+
+      if (requested_fields.handlecount) {
+        proc.handlecount = handlecount(entry.d_name);
       }
 
       if (requested_fields.threads) {
