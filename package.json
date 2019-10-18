@@ -16,7 +16,7 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">= 4"
+    "node": ">= 8"
   },
   "keywords": [
     "tasklist",
